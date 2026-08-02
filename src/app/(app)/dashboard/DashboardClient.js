@@ -98,13 +98,13 @@ export default function DashboardClient({ profile, talabalar, urinishlar, barcha
           label="Nazariy: o'tdi"
           value={stat.nazariy.otdi}
           accent="emerald"
-          sub={`${stat.nazariy.otmadi || 0} o'tmadi · ${stat.nazariy.kutilmoqda || 0} kutilmoqda`}
+          sub={`${stat.nazariy.otmadi || 0} o'tmadi · ${(stat.nazariy.kelmadi || 0) + (stat.nazariy.boshqa || 0)} kelmadi/boshqa · ${stat.nazariy.kutilmoqda || 0} kutilmoqda`}
         />
         <StatTile
           label="Amaliy: o'tdi"
           value={stat.amaliy.otdi}
           accent="emerald"
-          sub={`${stat.amaliy.otmadi || 0} o'tmadi · ${stat.amaliy.kutilmoqda || 0} kutilmoqda`}
+          sub={`${stat.amaliy.otmadi || 0} o'tmadi · ${(stat.amaliy.kelmadi || 0) + (stat.amaliy.boshqa || 0)} kelmadi/boshqa · ${stat.amaliy.kutilmoqda || 0} kutilmoqda`}
         />
       </div>
 

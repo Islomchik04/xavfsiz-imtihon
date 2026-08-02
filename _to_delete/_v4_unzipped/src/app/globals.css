@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background-color: #f5f7fb;
+  color: #0f172a;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.dark body {
+  background-color: #0b1220;
+  color: #e2e8f0;
+}
+
+.card {
+  @apply bg-white rounded-2xl shadow-sm border border-slate-200 p-5;
+  @apply dark:bg-slate-900 dark:border-slate-800;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-medium transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+}
+
+.btn-primary {
+  @apply btn bg-brand-600 text-white hover:bg-brand-700;
+}
+
+.btn-secondary {
+  @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200;
+  @apply dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700;
+}
+
+.btn-danger {
+  @apply btn bg-rose-600 text-white hover:bg-rose-700;
+}
+
+.btn-success {
+  @apply btn bg-emerald-600 text-white hover:bg-emerald-700;
+}
+
+.input {
+  @apply w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-[15px] outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
+  @apply dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:focus:ring-brand-900;
+}
+
+.label {
+  @apply block text-sm font-medium text-slate-600 mb-1.5;
+  @apply dark:text-slate-400;
+}
+
+.badge {
+  @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold;
+}
+
+/* ---------------------------------------------------------------------------
+   Tungi rejim uchun umumiy qayta ranglash: butun saytda har bir sahifada
+   qo'lda slate-* utility klasslarni "dark:" bilan qayta yozish o'rniga, eng
+   ko'p ishlatiladigan slate ranglarni tungi rejimda avtomatik almashtiramiz.
+   (.dark ichidagi tanlagich oddiy .text-slate-800 dan ustun turadi, chunki
+   ikkalasi ham CSS'da bir xil faylda, lekin bu compound selektor ko'proq
+   xususiylikka ega.)
+----------------------------------------------------------------------------- */
+.dark .text-slate-800 { color: #f1f5f9; }
+.dark .text-slate-700 { color: #e2e8f0; }
+.dark .text-slate-600 { color: #cbd5e1; }
+.dark .text-slate-500 { color: #94a3b8; }
+.dark .text-slate-400 { color: #64748b; }
+
+.dark .bg-white { background-color: #0f172a; }
+.dark .bg-slate-50 { background-color: #111c31; }
+.dark .bg-slate-100 { background-color: #1e293b; }
+.dark .hover\:bg-slate-50:hover { background-color: #1e293b; }
+.dark .hover\:bg-slate-100:hover { background-color: #263449; }
+.dark .hover\:bg-slate-200:hover { background-color: #334155; }
+
+.dark .border-slate-50 { border-color: #1e293b; }
+.dark .border-slate-100 { border-color: #1e293b; }
+.dark .border-slate-200 { border-color: #334155; }
+.dark .divide-slate-50 > :not([hidden]) ~ :not([hidden]) { border-color: #1e293b; }
