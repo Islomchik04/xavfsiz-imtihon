@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { IMTIHON_TURI, TOIFALAR } from "@/lib/constants";
+import { telefonKorinishi } from "@/lib/telefon";
 import YangiTalabaForm from "../yangi/YangiTalabaForm";
 
 export default function AsosiyMalumotlarCard({ talaba, tahrirRuxsat, formaMalumotlari, profile }) {
@@ -39,6 +40,18 @@ export default function AsosiyMalumotlarCard({ talaba, tahrirRuxsat, formaMalumo
       </div>
       <div className="space-y-2 text-sm">
         <Satr label="Toifa" qiymat={TOIFALAR[talaba.toifa]} />
+        <div className="flex justify-between gap-4 py-1.5 border-b border-slate-50 last:border-0">
+          <span className="text-slate-400">Telefon</span>
+          <span className="text-slate-700 font-medium text-right">
+            {talaba.telefon ? (
+              <a href={`tel:+998${talaba.telefon}`} className="text-brand-600 hover:underline">
+                +998 {telefonKorinishi(talaba.telefon)}
+              </a>
+            ) : (
+              "—"
+            )}
+          </span>
+        </div>
         <div className="flex justify-between gap-4 py-1.5 border-b border-slate-50 last:border-0">
           <span className="text-slate-400">Qarzdorlik</span>
           <span className={`font-medium text-right ${talaba.qarzdorlik ? "text-rose-600" : "text-emerald-600"}`}>

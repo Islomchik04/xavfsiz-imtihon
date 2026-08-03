@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import { supabaseServer } from "@/lib/supabase/server";
 import { guruhIdTop } from "@/lib/guruh";
+import { telefonNormallash } from "@/lib/telefon";
 import {
   MALUMOT_BOSHLANISH_QATORI,
   matndanToifa,
@@ -87,20 +88,23 @@ export async function POST(so_rov) {
     };
 
     const ismFamilya = matn(1);
-    const toifaMatni = matn(2);
-    const guruhRaqami = matn(3);
-    const forma083Matni = matn(4);
-    const imtihonTuriMatni = matn(5);
-    const nazariyIsmi = matn(6);
-    const amaliyIsmi = matn(7);
+    const telefonMatni = matn(2);
+    const toifaMatni = matn(3);
+    const guruhRaqami = matn(4);
+    const forma083Matni = matn(5);
+    const imtihonTuriMatni = matn(6);
+    const nazariyIsmi = matn(7);
+    const amaliyIsmi = matn(8);
 
     // Butunlay bo'sh qatorni jimgina o'tkazib yuboramiz (xato hisoblanmaydi).
-    if (!ismFamilya && !toifaMatni && !guruhRaqami && !forma083Matni && !imtihonTuriMatni) continue;
+    if (!ismFamilya && !telefonMatni && !toifaMatni && !guruhRaqami && !forma083Matni && !imtihonTuriMatni) continue;
 
     natijalar.jami += 1;
     const xatoQoshish = (sabab) => natijalar.xatolar.push({ qator: r, ism: ismFamilya || "(ismsiz)", sabab });
 
     if (!ismFamilya) { xatoQoshish("Ism familya bo'sh"); continue; }
+    const telefon = telefonNormallash(telefonMatni);
+    if (!telefonMatni || telefon.length !== 9) { xatoQoshish("Telefon raqami noto'g'ri (9 xonali bo'lishi kerak, masalan: 91 234 56 78)"); continue; }
     if (!guruhRaqami || !/^\d+$/.test(guruhRaqami)) { xatoQoshish("Guruh raqami noto'g'ri (faqat son bo'lishi kerak)"); continue; }
 
     const toifa = matndanToifa(toifaMatni);
@@ -139,6 +143,7 @@ export async function POST(so_rov) {
 
     const { error } = await supabase.from("talabalar").insert({
       ism_familya: ismFamilya,
+      telefon,
       toifa,
       filial_id: filialId,
       guruh_id: guruhId,

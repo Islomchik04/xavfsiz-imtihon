@@ -10,6 +10,7 @@ import { IMTIHON_TURI, FORMA_083_LABEL, TOIFALAR } from "./constants";
 // tushunadi; import paytida bu qator HAR DOIM o'tkazib yuboriladi).
 export const IMPORT_USTUNLARI = [
   { key: "ism_familya", header: "Ism familya *", namuna: "Aliyev Vali Aliyevich", kenglik: 28 },
+  { key: "telefon", header: "Telefon raqami * (998siz, 9 xonali)", namuna: "91 234 56 78", kenglik: 22 },
   { key: "toifa", header: "Toifa *", namuna: "B", kenglik: 12 },
   { key: "guruh_raqami", header: "Guruh raqami *", namuna: "24", kenglik: 14 },
   { key: "forma_083", header: "083 forma *", namuna: FORMA_083_LABEL[true], kenglik: 14 },

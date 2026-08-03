@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { IMTIHON_TURI, FORMA_083_LABEL, TOIFALAR } from "@/lib/constants";
 import { guruhIdTop } from "@/lib/guruh";
+import { telefonNormallash, telefonKorinishi } from "@/lib/telefon";
 
 // markaziyRol: hujjatchi va superadmin filialni o'zi tanlaydi (istalgan
 // filialga talaba qo'sha oladi); admin faqat o'z filialiga qo'shadi.
@@ -23,6 +24,9 @@ export default function YangiTalabaForm({
     tahrirlanayotgan?.filial_id || (markaziyRol ? "" : profile.filial_id)
   );
   const [ismFamilya, setIsmFamilya] = useState(tahrirlanayotgan?.ism_familya || "");
+  const [telefon, setTelefon] = useState(
+    tahrirlanayotgan?.telefon ? telefonKorinishi(tahrirlanayotgan.telefon) : ""
+  );
   const [toifa, setToifa] = useState(tahrirlanayotgan?.toifa || "");
   const [qarzdorlik, setQarzdorlik] = useState(
     tahrirlanayotgan ? (tahrirlanayotgan.qarzdorlik ? "bor" : "yoq") : "yoq"
@@ -70,6 +74,11 @@ export default function YangiTalabaForm({
       setXato("Barcha maydonlarni to'ldiring");
       return;
     }
+    const telefonNormal = telefonNormallash(telefon);
+    if (telefonNormal.length !== 9) {
+      setXato("Telefon raqamini to'liq kiriting (9 xonali, masalan: 91 234 56 78)");
+      return;
+    }
     if (!/^\d+$/.test(guruhRaqami.trim())) {
       setXato("Guruh raqami faqat sonlardan iborat bo'lishi kerak");
       return;
@@ -102,6 +111,7 @@ export default function YangiTalabaForm({
 
     const maydonlar = {
       ism_familya: ismFamilya.trim(),
+      telefon: telefonNormal,
       toifa,
       qarzdorlik: qarzdorlik === "bor",
       qarzdorlik_summasi: qarzdorlik === "bor" ? qarzdorlikSoni : null,
@@ -172,6 +182,24 @@ export default function YangiTalabaForm({
           placeholder="Masalan: Aliyev Vali Aliyevich"
           required
         />
+      </div>
+
+      <div>
+        <label className="label">Telefon raqami</label>
+        <div className="flex items-stretch">
+          <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-300 bg-slate-50 text-slate-500 text-[15px]">
+            +998
+          </span>
+          <input
+            className="input rounded-l-none"
+            type="tel"
+            inputMode="numeric"
+            value={telefon}
+            onChange={(e) => setTelefon(e.target.value)}
+            placeholder="91 234 56 78"
+            required
+          />
+        </div>
       </div>
 
       <div>

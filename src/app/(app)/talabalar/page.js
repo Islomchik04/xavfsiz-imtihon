@@ -3,9 +3,10 @@ import { joriyFoydalanuvchi } from "@/lib/joriyFoydalanuvchi";
 import Badge from "@/components/Badge";
 import { IMTIHON_TURI, FORMA_083_LABEL, TALABA_HOLATI, TALABA_HOLATI_RANG, TOIFALAR } from "@/lib/constants";
 import { talabaHolati, birUrinishdaOtganmi } from "@/lib/imtihonHisob";
+import { telefonKorinishi } from "@/lib/telefon";
 
 const TALABA_SELECT = `
-  id, ism_familya, toifa, imtihon_turi, forma_083, hujjat_tayyor, qarzdorlik, qarzdorlik_summasi,
+  id, ism_familya, telefon, toifa, imtihon_turi, forma_083, hujjat_tayyor, qarzdorlik, qarzdorlik_summasi,
   filiallar(id, nomi), guruhlar(nomi)
 `;
 
@@ -111,6 +112,7 @@ export default async function TalabalarSahifa({ searchParams }) {
           <thead>
             <tr className="text-left text-slate-400 border-b border-slate-100">
               <th className="pb-2 font-medium">Ism familya</th>
+              <th className="pb-2 font-medium">Telefon</th>
               <th className="pb-2 font-medium">Toifa</th>
               <th className="pb-2 font-medium">Filial / Guruh</th>
               <th className="pb-2 font-medium">Imtihon turi</th>
@@ -129,6 +131,15 @@ export default async function TalabalarSahifa({ searchParams }) {
                   <Link href={`/talabalar/${t.id}`} className="font-medium text-brand-700 hover:underline">
                     {t.ism_familya}
                   </Link>
+                </td>
+                <td className="py-2.5 text-slate-500">
+                  {t.telefon ? (
+                    <a href={`tel:+998${t.telefon}`} className="text-brand-600 hover:underline" onClick={(e) => e.stopPropagation()}>
+                      +998 {telefonKorinishi(t.telefon)}
+                    </a>
+                  ) : (
+                    "—"
+                  )}
                 </td>
                 <td className="py-2.5">
                   <span className="badge bg-slate-100 text-slate-600">{TOIFALAR[t.toifa] || "—"}</span>
@@ -154,7 +165,7 @@ export default async function TalabalarSahifa({ searchParams }) {
             ))}
             {royxat.length === 0 && !error && (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-slate-400">
+                <td colSpan={8} className="py-8 text-center text-slate-400">
                   Hech narsa topilmadi
                 </td>
               </tr>
@@ -177,6 +188,17 @@ export default async function TalabalarSahifa({ searchParams }) {
             <div className="text-xs text-slate-400 mb-2">
               {TOIFALAR[t.toifa] || "—"} · {t.filiallar?.nomi} / {t.guruhlar?.nomi} · {IMTIHON_TURI[t.imtihon_turi]}
             </div>
+            {t.telefon && (
+              <div className="text-xs mb-2">
+                <a
+                  href={`tel:+998${t.telefon}`}
+                  className="text-brand-600 hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  📞 +998 {telefonKorinishi(t.telefon)}
+                </a>
+              </div>
+            )}
             <div className="flex flex-wrap gap-1.5">
               <span className={`badge ${TALABA_HOLATI_RANG[t.holat]}`}>{TALABA_HOLATI[t.holat]}</span>
               {t.qarzdorlik && (
