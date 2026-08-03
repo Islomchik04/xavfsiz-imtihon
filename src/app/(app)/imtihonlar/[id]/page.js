@@ -39,6 +39,7 @@ export default async function ImtihonTafsilotSahifa({ params }) {
       natijaBelgilashRuxsat={["imtihonchi", "superadmin"].includes(profile.role)}
       biriktirishRuxsat={["hujjatchi", "superadmin", "imtihonchi"].includes(profile.role)}
       holatBoshqarishRuxsat={["imtihonchi", "hujjatchi", "superadmin"].includes(profile.role)}
+      superadminMi={profile.role === "superadmin"}
       oqituvchilar={oqituvchilar || []}
       sabablar={sabablar || []}
     />
