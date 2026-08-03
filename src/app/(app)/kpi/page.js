@@ -5,7 +5,7 @@ import KpiClient from "./KpiClient";
 const URINISH_SELECT = `
   talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija, created_at,
   imtihonlar(sana),
-  talabalar(nazariy_oqituvchi_id, amaliy_oqituvchi_id)
+  talabalar(nazariy_oqituvchi_id, amaliy_oqituvchi_id, toifa)
 `;
 
 export default async function KpiSahifa() {

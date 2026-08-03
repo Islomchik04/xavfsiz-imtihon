@@ -207,6 +207,9 @@ export function oqituvchilarKpiHisoblash(urinishlar, oqituvchilar) {
   for (const u of urinishlar) {
     const sana = u.imtihonlar?.sana;
     if (!sana) continue;
+    // Express toifadagi talabalar o'qituvchiga umuman biriktirilmaydi va
+    // KPI hisobiga kirmaydi (na mukofot, na jarima).
+    if (u.talabalar?.toifa === "express") continue;
     const hafta = haftaBoshi(sana);
     if (u.nazariy_kerak && (u.nazariy_natija === "otdi" || u.nazariy_natija === "otmadi")) {
       const otdimi = u.nazariy_natija === "otdi";

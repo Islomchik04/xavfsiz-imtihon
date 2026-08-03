@@ -63,8 +63,9 @@ export default function YangiTalabaForm({
     [oqituvchilar, filialId]
   );
 
-  const nazariyKerak = imtihonTuri === "nazariy" || imtihonTuri === "ikkalasi";
-  const amaliyKerak = imtihonTuri === "amaliy" || imtihonTuri === "ikkalasi";
+  const expressToifa = toifa === "express";
+  const nazariyKerak = !expressToifa && (imtihonTuri === "nazariy" || imtihonTuri === "ikkalasi");
+  const amaliyKerak = !expressToifa && (imtihonTuri === "amaliy" || imtihonTuri === "ikkalasi");
 
   async function yuborish(e) {
     e.preventDefault();
@@ -81,14 +82,6 @@ export default function YangiTalabaForm({
     }
     if (!/^\d+$/.test(guruhRaqami.trim())) {
       setXato("Guruh raqami faqat sonlardan iborat bo'lishi kerak");
-      return;
-    }
-    if (nazariyKerak && !nazariyOqituvchiId) {
-      setXato("Nazariy o'qituvchini tanlang");
-      return;
-    }
-    if (amaliyKerak && !amaliyOqituvchiId) {
-      setXato("Amaliy o'qituvchini tanlang");
       return;
     }
     const qarzdorlikSoni = Number(qarzdorlikSummasi.replace(",", "."));
@@ -119,8 +112,8 @@ export default function YangiTalabaForm({
       guruh_id: guruhId,
       forma_083: forma083 === "tayyor",
       imtihon_turi: imtihonTuri,
-      nazariy_oqituvchi_id: nazariyKerak ? nazariyOqituvchiId : null,
-      amaliy_oqituvchi_id: amaliyKerak ? amaliyOqituvchiId : null,
+      nazariy_oqituvchi_id: nazariyKerak && nazariyOqituvchiId ? nazariyOqituvchiId : null,
+      amaliy_oqituvchi_id: amaliyKerak && amaliyOqituvchiId ? amaliyOqituvchiId : null,
     };
 
     let natija;
@@ -204,12 +197,29 @@ export default function YangiTalabaForm({
 
       <div>
         <label className="label">Toifa</label>
-        <select className="input" value={toifa} onChange={(e) => setToifa(e.target.value)} required>
+        <select
+          className="input"
+          value={toifa}
+          onChange={(e) => {
+            const yangiToifa = e.target.value;
+            setToifa(yangiToifa);
+            if (yangiToifa === "express") {
+              setNazariyOqituvchiId("");
+              setAmaliyOqituvchiId("");
+            }
+          }}
+          required
+        >
           <option value="">Tanlang</option>
           {Object.entries(TOIFALAR).map(([k, v]) => (
             <option key={k} value={k}>{v}</option>
           ))}
         </select>
+        {expressToifa && (
+          <p className="text-xs text-slate-400 mt-1">
+            Express toifadagi talabalar o'qituvchiga biriktirilmaydi va KPI hisobiga kirmaydi.
+          </p>
+        )}
       </div>
 
       <div>
@@ -297,8 +307,8 @@ export default function YangiTalabaForm({
       {nazariyKerak && (
         <div>
           <label className="label">Nazariy o'qituvchi</label>
-          <select className="input" value={nazariyOqituvchiId} onChange={(e) => setNazariyOqituvchiId(e.target.value)} required disabled={!filialId}>
-            <option value="">Tanlang</option>
+          <select className="input" value={nazariyOqituvchiId} onChange={(e) => setNazariyOqituvchiId(e.target.value)} disabled={!filialId}>
+            <option value="">Yo'q (biriktirilmagan)</option>
             {nazariyOqituvchilar.map((o) => (
               <option key={o.id} value={o.id}>{o.ism_familya}</option>
             ))}
@@ -312,8 +322,8 @@ export default function YangiTalabaForm({
       {amaliyKerak && (
         <div>
           <label className="label">Amaliy o'qituvchi</label>
-          <select className="input" value={amaliyOqituvchiId} onChange={(e) => setAmaliyOqituvchiId(e.target.value)} required disabled={!filialId}>
-            <option value="">Tanlang</option>
+          <select className="input" value={amaliyOqituvchiId} onChange={(e) => setAmaliyOqituvchiId(e.target.value)} disabled={!filialId}>
+            <option value="">Yo'q (biriktirilmagan)</option>
             {amaliyOqituvchilar.map((o) => (
               <option key={o.id} value={o.id}>{o.ism_familya}</option>
             ))}

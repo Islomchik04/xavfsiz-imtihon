@@ -12,7 +12,7 @@ export default async function ImtihonlarSahifa() {
   const [{ data: imtihonlar }, { data: urinishlar }] = await Promise.all([
     supabase
       .from("imtihonlar")
-      .select("id, sana, izoh, created_at, yaratgan_profil:profiles!yaratgan(ism_familya)")
+      .select("id, sana, izoh, holati, created_at, yaratgan_profil:profiles!yaratgan(ism_familya)")
       .order("sana", { ascending: false }),
     supabase
       .from("talaba_imtihonlar")

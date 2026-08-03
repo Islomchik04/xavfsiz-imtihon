@@ -2,7 +2,7 @@ import Link from "next/link";
 import { joriyFoydalanuvchi } from "@/lib/joriyFoydalanuvchi";
 import Badge from "@/components/Badge";
 import { IMTIHON_TURI, FORMA_083_LABEL, TALABA_HOLATI, TALABA_HOLATI_RANG, TOIFALAR } from "@/lib/constants";
-import { talabaHolati, birUrinishdaOtganmi } from "@/lib/imtihonHisob";
+import { talabaHolati, birUrinishdaOtganmi, qismHolati } from "@/lib/imtihonHisob";
 import { telefonKorinishi } from "@/lib/telefon";
 
 const TALABA_SELECT = `
@@ -42,10 +42,13 @@ export default async function TalabalarSahifa({ searchParams }) {
       ...t,
       holat: talabaHolati(urinishlariT),
       birUrinishdaOtdi: birUrinishdaOtganmi(urinishlariT),
+      nazariydanOtganmi: qismHolati(urinishlariT, "nazariy") === "otgan",
     };
   });
   if (holatFiltr === "bir_urinishda_otgan") {
     royxat = royxat.filter((t) => t.birUrinishdaOtdi);
+  } else if (holatFiltr === "nazariydan_otgan") {
+    royxat = royxat.filter((t) => t.nazariydanOtganmi);
   } else if (holatFiltr) {
     royxat = royxat.filter((t) => t.holat === holatFiltr);
   }
@@ -90,6 +93,7 @@ export default async function TalabalarSahifa({ searchParams }) {
             <option value="kelmadi">Kelmadi (qayta imtihon kerak)</option>
             <option value="boshqa">Boshqa sabab (qayta imtihon kerak)</option>
             <option value="bir_urinishda_otgan">Bitta urinishda o'tganlar</option>
+            <option value="nazariydan_otgan">Nazariydan o'tganlar</option>
           </select>
         </div>
         <div className="min-w-[160px]">
@@ -159,7 +163,10 @@ export default async function TalabalarSahifa({ searchParams }) {
                   </Badge>
                 </td>
                 <td className="py-2.5">
-                  <span className={`badge ${TALABA_HOLATI_RANG[t.holat]}`}>{TALABA_HOLATI[t.holat]}</span>
+                  <div className="flex flex-wrap gap-1">
+                    <span className={`badge ${TALABA_HOLATI_RANG[t.holat]}`}>{TALABA_HOLATI[t.holat]}</span>
+                    {t.nazariydanOtganmi && <span className="badge bg-emerald-100 text-emerald-700">Nazariydan o'tgan</span>}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -193,6 +200,7 @@ export default async function TalabalarSahifa({ searchParams }) {
             )}
             <div className="flex flex-wrap gap-1.5">
               <span className={`badge ${TALABA_HOLATI_RANG[t.holat]}`}>{TALABA_HOLATI[t.holat]}</span>
+              {t.nazariydanOtganmi && <span className="badge bg-emerald-100 text-emerald-700">Nazariydan o'tgan</span>}
               {t.qarzdorlik && (
                 <Badge ton="rose">
                   Qarz: {t.qarzdorlik_summasi != null ? Number(t.qarzdorlik_summasi).toLocaleString("uz-UZ") : "bor"}

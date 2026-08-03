@@ -80,6 +80,19 @@ export const TALABA_HOLATI = {
   boshqa: "Boshqa sabab — qayta imtihon kerak",
 };
 
+// Imtihon sessiyasi hayotiy sikli holati
+export const IMTIHON_HOLATI = {
+  boshlanmagan: "Boshlanmagan",
+  boshlangan: "Boshlangan",
+  yakunlangan: "Yakunlangan",
+};
+
+export const IMTIHON_HOLATI_RANG = {
+  boshlanmagan: "bg-slate-100 text-slate-500",
+  boshlangan: "bg-emerald-100 text-emerald-700",
+  yakunlangan: "bg-brand-100 text-brand-700",
+};
+
 export const TALABA_HOLATI_RANG = {
   hujjat_kutilmoqda: "bg-amber-100 text-amber-700",
   imtihon_yoq: "bg-slate-100 text-slate-500",

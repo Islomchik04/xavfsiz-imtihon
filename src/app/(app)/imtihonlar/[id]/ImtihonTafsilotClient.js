@@ -1,21 +1,76 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { sanaKorinishi } from "@/lib/imtihonHisob";
-import { NATIJA } from "@/lib/constants";
+import { NATIJA, IMTIHON_HOLATI, IMTIHON_HOLATI_RANG } from "@/lib/constants";
 import { otdiEffekti } from "@/lib/effektlar";
 
-export default function ImtihonTafsilotClient({ imtihon, boshlangichUrinishlar, natijaBelgilashRuxsat, sabablar }) {
+export default function ImtihonTafsilotClient({
+  imtihon,
+  boshlangichUrinishlar,
+  natijaBelgilashRuxsat,
+  biriktirishRuxsat,
+  holatBoshqarishRuxsat,
+  amaliyOqituvchilar,
+  sabablar,
+}) {
+  const router = useRouter();
   const [urinishlar, setUrinishlar] = useState(boshlangichUrinishlar);
   const [soz, setSoz] = useState("");
+  const [holat, setHolat] = useState(imtihon.holati || "boshlanmagan");
+  const [boshlandiOverlay, setBoshlandiOverlay] = useState(false);
+  const [holatYuklanmoqda, setHolatYuklanmoqda] = useState(false);
+
+  // Server komponent router.refresh() orqali yangi ma'lumot bergach, mahalliy
+  // holatni shu bilan sinxronlaymiz (talaba qo'shilganda/amaliyga
+  // o'tkazilganda yangi qatorlar aynan shu yo'l bilan ko'rinadi).
+  useEffect(() => {
+    setUrinishlar(boshlangichUrinishlar);
+  }, [boshlangichUrinishlar]);
+
+  useEffect(() => {
+    setHolat(imtihon.holati || "boshlanmagan");
+  }, [imtihon.holati]);
+
+  const otkazishRuxsat = natijaBelgilashRuxsat || biriktirishRuxsat;
 
   const filtrlangan = useMemo(() => {
     const s = soz.trim().toLowerCase();
     if (!s) return urinishlar;
     return urinishlar.filter((u) => u.talabalar?.ism_familya?.toLowerCase().includes(s));
   }, [urinishlar, soz]);
+
+  // Talaba shu imtihon doirasida boshqa (amaliy kerakli) urinishga ega
+  // bo'lsa — "amaliyga qo'shish" tugmasi endi kerak emas (allaqachon
+  // qo'shilgan).
+  const amaliyBorTalabalar = useMemo(() => {
+    const to_plam = new Set();
+    for (const u of urinishlar) {
+      if (u.amaliy_kerak && u.talaba_id) to_plam.add(u.talaba_id);
+    }
+    return to_plam;
+  }, [urinishlar]);
+
+  function amaliygaTayyormi(u) {
+    const talaba = u.talabalar;
+    return (
+      u.nazariy_kerak &&
+      u.nazariy_natija === "otdi" &&
+      !u.amaliy_kerak &&
+      !amaliyBorTalabalar.has(u.talaba_id) &&
+      talaba?.toifa !== "express"
+    );
+  }
+
+  const nazariydanOtganlar = useMemo(() => filtrlangan.filter(amaliygaTayyormi), [filtrlangan, amaliyBorTalabalar]);
+  const qolganlar = useMemo(
+    () => filtrlangan.filter((u) => !amaliygaTayyormi(u)),
+    [filtrlangan, amaliyBorTalabalar]
+  );
 
   function yangilaUrinish(id, oz) {
     setUrinishlar((royxat) => royxat.map((u) => (u.id === id ? { ...u, ...oz } : u)));
@@ -28,6 +83,40 @@ export default function ImtihonTafsilotClient({ imtihon, boshlangichUrinishlar, 
     if (u.amaliy_kerak) qismlar.push(u.amaliy_natija);
     return !qismlar.some((q) => q === "kutilmoqda");
   }).length;
+
+  // Nazariy/amaliy/ikkalasi statistikasi — imtihon boshlanishidan oldin
+  // nechta o'quvchi qaysi qism bo'yicha kutilayotganini ko'rsatadi.
+  const statistika = useMemo(() => {
+    let faqatNazariy = 0;
+    let faqatAmaliy = 0;
+    let ikkalasi = 0;
+    for (const u of urinishlar) {
+      if (u.nazariy_kerak && u.amaliy_kerak) ikkalasi += 1;
+      else if (u.nazariy_kerak) faqatNazariy += 1;
+      else if (u.amaliy_kerak) faqatAmaliy += 1;
+    }
+    return { faqatNazariy, faqatAmaliy, ikkalasi };
+  }, [urinishlar]);
+
+  async function holatniOzgartirish(yangiHolat) {
+    setHolatYuklanmoqda(true);
+    const supabase = supabaseBrowser();
+    const { error } = await supabase.rpc("imtihon_holatini_ozgartirish", {
+      p_imtihon_id: imtihon.id,
+      p_holat: yangiHolat,
+    });
+    setHolatYuklanmoqda(false);
+    if (error) {
+      alert(`Xatolik: ${error.message}`);
+      return;
+    }
+    setHolat(yangiHolat);
+    if (yangiHolat === "boshlangan") {
+      setBoshlandiOverlay(true);
+      setTimeout(() => setBoshlandiOverlay(false), 2600);
+    }
+    router.refresh();
+  }
 
   return (
     <div className="space-y-5">
@@ -42,7 +131,52 @@ export default function ImtihonTafsilotClient({ imtihon, boshlangichUrinishlar, 
             {natijaChiqqan}/{jami} ta natija chiqqan
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <span className={`badge ${IMTIHON_HOLATI_RANG[holat]}`}>{IMTIHON_HOLATI[holat]}</span>
+          {holatBoshqarishRuxsat && holat === "boshlanmagan" && (
+            <button
+              className="btn-primary"
+              disabled={holatYuklanmoqda}
+              onClick={() => holatniOzgartirish("boshlangan")}
+            >
+              {holatYuklanmoqda ? "…" : "▶ Boshlash"}
+            </button>
+          )}
+          {holatBoshqarishRuxsat && holat === "boshlangan" && (
+            <button
+              className="btn-secondary"
+              disabled={holatYuklanmoqda}
+              onClick={() => holatniOzgartirish("yakunlangan")}
+            >
+              {holatYuklanmoqda ? "…" : "■ Yakunlash"}
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Imtihon boshlanishidan oldin: nazariy/amaliy/ikkalasi soni */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="card !py-3 text-center">
+          <div className="text-xl font-bold text-slate-800">{statistika.faqatNazariy}</div>
+          <div className="text-xs text-slate-400 mt-0.5">Faqat nazariy</div>
+        </div>
+        <div className="card !py-3 text-center">
+          <div className="text-xl font-bold text-slate-800">{statistika.faqatAmaliy}</div>
+          <div className="text-xs text-slate-400 mt-0.5">Faqat amaliy</div>
+        </div>
+        <div className="card !py-3 text-center">
+          <div className="text-xl font-bold text-slate-800">{statistika.ikkalasi}</div>
+          <div className="text-xs text-slate-400 mt-0.5">Nazariy + Amaliy</div>
+        </div>
+      </div>
+
+      {biriktirishRuxsat && (
+        <TalabaQoshish
+          imtihonId={imtihon.id}
+          mavjudTalabaIdlar={urinishlar.map((u) => u.talaba_id).filter(Boolean)}
+          onQoshildi={() => router.refresh()}
+        />
+      )}
 
       <div className="relative">
         <img
@@ -64,23 +198,296 @@ export default function ImtihonTafsilotClient({ imtihon, boshlangichUrinishlar, 
       ) : filtrlangan.length === 0 ? (
         <div className="card text-sm text-slate-400">Hech narsa topilmadi.</div>
       ) : (
-        <div className="space-y-4">
-          {filtrlangan.map((u) => (
-            <UrinishKartochka
-              key={u.id}
-              urinish={u}
-              tahrirRuxsat={natijaBelgilashRuxsat}
-              sabablar={sabablar}
-              onYangilash={(oz) => yangilaUrinish(u.id, oz)}
-            />
-          ))}
+        <div className="space-y-5">
+          {nazariydanOtganlar.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold text-emerald-700 flex items-center gap-1.5">
+                ✓ Nazariydan o'tganlar — amaliyga qo'shish mumkin ({nazariydanOtganlar.length})
+              </h2>
+              {nazariydanOtganlar.map((u) => (
+                <UrinishKartochka
+                  key={u.id}
+                  urinish={u}
+                  tahrirRuxsat={natijaBelgilashRuxsat}
+                  otkazishRuxsat={otkazishRuxsat}
+                  sabablar={sabablar}
+                  imtihonId={imtihon.id}
+                  amaliyOqituvchilar={amaliyOqituvchilar}
+                  amaliygaTaklifQilish
+                  onYangilash={(oz) => yangilaUrinish(u.id, oz)}
+                  onOtkazildi={() => router.refresh()}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {nazariydanOtganlar.length > 0 && (
+              <h2 className="text-sm font-semibold text-slate-500">Barcha ishtirokchilar</h2>
+            )}
+            {qolganlar.map((u) => (
+              <UrinishKartochka
+                key={u.id}
+                urinish={u}
+                tahrirRuxsat={natijaBelgilashRuxsat}
+                otkazishRuxsat={otkazishRuxsat}
+                sabablar={sabablar}
+                imtihonId={imtihon.id}
+                amaliyOqituvchilar={amaliyOqituvchilar}
+                amaliygaTaklifQilish={false}
+                onYangilash={(oz) => yangilaUrinish(u.id, oz)}
+                onOtkazildi={() => router.refresh()}
+              />
+            ))}
+          </div>
         </div>
+      )}
+
+      {holat === "yakunlangan" && <YakunStatistikasi urinishlar={urinishlar} />}
+
+      <AnimatePresence>
+        {boshlandiOverlay && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-brand-800 via-brand-700 to-slate-900 overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
+          >
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="xi-blob w-[26rem] h-[26rem] bg-brand-400 -top-24 -left-16" />
+              <div className="xi-blob w-[22rem] h-[22rem] bg-white top-1/2 -right-20" style={{ animationDelay: "-8s" }} />
+            </div>
+
+            <div className="text-center relative px-6">
+              <motion.div
+                className="mx-auto mb-6 w-20 h-20 rounded-full bg-white/10 backdrop-blur flex items-center justify-center"
+                initial={{ scale: 0, rotate: -45 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 220, damping: 14, delay: 0.1 }}
+              >
+                <span className="text-4xl">🚦</span>
+              </motion.div>
+              <motion.h1
+                className="text-2xl sm:text-3xl font-bold text-white mb-2"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.25 }}
+              >
+                Imtihon boshlandi!
+              </motion.h1>
+              <motion.p
+                className="text-brand-100 text-sm"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+              >
+                Barcha o'quvchilarga omad tilaymiz!
+              </motion.p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function YakunStatistikasi({ urinishlar }) {
+  const stat = useMemo(() => {
+    let nazariyOtdi = 0;
+    let nazariyOtmadi = 0;
+    let amaliyOtdi = 0;
+    let amaliyOtmadi = 0;
+    for (const u of urinishlar) {
+      if (u.nazariy_kerak) {
+        if (u.nazariy_natija === "otdi") nazariyOtdi += 1;
+        else if (u.nazariy_natija !== "kutilmoqda") nazariyOtmadi += 1;
+      }
+      if (u.amaliy_kerak) {
+        if (u.amaliy_natija === "otdi") amaliyOtdi += 1;
+        else if (u.amaliy_natija !== "kutilmoqda") amaliyOtmadi += 1;
+      }
+    }
+    return { nazariyOtdi, nazariyOtmadi, amaliyOtdi, amaliyOtmadi };
+  }, [urinishlar]);
+
+  return (
+    <div className="card bg-brand-50 border-brand-100">
+      <div className="font-semibold text-brand-800 mb-3">Imtihon yakuni — statistika</div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white rounded-xl p-3 text-center">
+          <div className="text-xl font-bold text-emerald-600">{stat.nazariyOtdi}</div>
+          <div className="text-xs text-slate-400 mt-0.5">Nazariy o'tdi</div>
+        </div>
+        <div className="bg-white rounded-xl p-3 text-center">
+          <div className="text-xl font-bold text-rose-600">{stat.nazariyOtmadi}</div>
+          <div className="text-xs text-slate-400 mt-0.5">Nazariy o'tmadi</div>
+        </div>
+        <div className="bg-white rounded-xl p-3 text-center">
+          <div className="text-xl font-bold text-emerald-600">{stat.amaliyOtdi}</div>
+          <div className="text-xs text-slate-400 mt-0.5">Amaliy o'tdi</div>
+        </div>
+        <div className="bg-white rounded-xl p-3 text-center">
+          <div className="text-xl font-bold text-rose-600">{stat.amaliyOtmadi}</div>
+          <div className="text-xs text-slate-400 mt-0.5">Amaliy o'tmadi</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TalabaQoshish({ imtihonId, mavjudTalabaIdlar, onQoshildi }) {
+  const [ochiq, setOchiq] = useState(false);
+  const [soz, setSoz] = useState("");
+  const [natijalar, setNatijalar] = useState([]);
+  const [qidirilmoqda, setQidirilmoqda] = useState(false);
+  const [tanlanganlar, setTanlanganlar] = useState({});
+  const [yuklanmoqdaId, setYuklanmoqdaId] = useState(null);
+  const [xato, setXato] = useState("");
+
+  async function qidirish(matn) {
+    setSoz(matn);
+    setXato("");
+    if (matn.trim().length < 2) {
+      setNatijalar([]);
+      return;
+    }
+    setQidirilmoqda(true);
+    const supabase = supabaseBrowser();
+    const { data } = await supabase
+      .from("talabalar")
+      .select("id, ism_familya, imtihon_turi, hujjat_tayyor, filiallar(nomi), guruhlar(nomi)")
+      .ilike("ism_familya", `%${matn.trim()}%`)
+      .eq("hujjat_tayyor", true)
+      .limit(8);
+    setQidirilmoqda(false);
+    setNatijalar((data || []).filter((t) => !mavjudTalabaIdlar.includes(t.id)));
+  }
+
+  function tanlashniOzgartir(talabaId, turi, qiymat, boshlangichTuri) {
+    setTanlanganlar((h) => {
+      const joriy =
+        h[talabaId] || {
+          nazariy: boshlangichTuri === "nazariy" || boshlangichTuri === "ikkalasi",
+          amaliy: boshlangichTuri === "amaliy" || boshlangichTuri === "ikkalasi",
+        };
+      return { ...h, [talabaId]: { ...joriy, [turi]: qiymat } };
+    });
+  }
+
+  async function biriktirish(talaba) {
+    const tanlov =
+      tanlanganlar[talaba.id] || {
+        nazariy: talaba.imtihon_turi === "nazariy" || talaba.imtihon_turi === "ikkalasi",
+        amaliy: talaba.imtihon_turi === "amaliy" || talaba.imtihon_turi === "ikkalasi",
+      };
+    if (!tanlov.nazariy && !tanlov.amaliy) {
+      setXato("Kamida bittasini (nazariy yoki amaliy) tanlang");
+      return;
+    }
+    setYuklanmoqdaId(talaba.id);
+    setXato("");
+    const supabase = supabaseBrowser();
+    const { error } = await supabase.rpc("imtihonga_biriktirish", {
+      p_talaba_id: talaba.id,
+      p_imtihon_id: imtihonId,
+      p_nazariy_kerak: tanlov.nazariy,
+      p_amaliy_kerak: tanlov.amaliy,
+    });
+    setYuklanmoqdaId(null);
+    if (error) {
+      setXato(error.message);
+      return;
+    }
+    setNatijalar((r) => r.filter((t) => t.id !== talaba.id));
+    setSoz("");
+    onQoshildi();
+  }
+
+  if (!ochiq) {
+    return (
+      <button type="button" onClick={() => setOchiq(true)} className="btn-secondary w-full">
+        + Imtihonga talaba qo'shish (ism familya bo'yicha)
+      </button>
+    );
+  }
+
+  return (
+    <div className="card space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="font-semibold text-slate-700 text-sm">Talaba qo'shish</div>
+        <button type="button" onClick={() => setOchiq(false)} className="text-xs text-slate-400 hover:text-slate-600">
+          Yopish
+        </button>
+      </div>
+      <input className="input" placeholder="Ism familyani yozing…" value={soz} onChange={(e) => qidirish(e.target.value)} autoFocus />
+      {qidirilmoqda && <div className="text-xs text-slate-400">Qidirilmoqda…</div>}
+      {xato && <div className="text-xs text-rose-600">{xato}</div>}
+      {natijalar.length > 0 && (
+        <ul className="divide-y divide-slate-100">
+          {natijalar.map((t) => {
+            const tanlov =
+              tanlanganlar[t.id] || {
+                nazariy: t.imtihon_turi === "nazariy" || t.imtihon_turi === "ikkalasi",
+                amaliy: t.imtihon_turi === "amaliy" || t.imtihon_turi === "ikkalasi",
+              };
+            return (
+              <li key={t.id} className="py-2.5 space-y-1.5">
+                <div>
+                  <div className="font-medium text-slate-700 text-sm">{t.ism_familya}</div>
+                  <div className="text-xs text-slate-400">
+                    {t.filiallar?.nomi} · {t.guruhlar?.nomi}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <label className="flex items-center gap-1.5 text-xs text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={tanlov.nazariy}
+                      onChange={(e) => tanlashniOzgartir(t.id, "nazariy", e.target.checked, t.imtihon_turi)}
+                    />
+                    Nazariy
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={tanlov.amaliy}
+                      onChange={(e) => tanlashniOzgartir(t.id, "amaliy", e.target.checked, t.imtihon_turi)}
+                    />
+                    Amaliy
+                  </label>
+                  <button
+                    type="button"
+                    disabled={yuklanmoqdaId === t.id}
+                    onClick={() => biriktirish(t)}
+                    className="btn-primary !py-1 !px-3 !text-xs ml-auto disabled:opacity-50"
+                  >
+                    {yuklanmoqdaId === t.id ? "…" : "Qo'shish"}
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {!qidirilmoqda && soz.trim().length >= 2 && natijalar.length === 0 && (
+        <div className="text-xs text-slate-400">Topilmadi (yoki allaqachon biriktirilgan / hujjati tayyor emas).</div>
       )}
     </div>
   );
 }
 
-function UrinishKartochka({ urinish, tahrirRuxsat, sabablar, onYangilash }) {
+function UrinishKartochka({
+  urinish,
+  tahrirRuxsat,
+  otkazishRuxsat,
+  sabablar,
+  imtihonId,
+  amaliyOqituvchilar,
+  amaliygaTaklifQilish,
+  onYangilash,
+  onOtkazildi,
+}) {
   const [yuklanmoqdaMaydon, setYuklanmoqdaMaydon] = useState(null);
   const talaba = urinish.talabalar;
 
@@ -106,6 +513,7 @@ function UrinishKartochka({ urinish, tahrirRuxsat, sabablar, onYangilash }) {
             {talaba.filiallar?.nomi} · {talaba.guruhlar?.nomi}
           </div>
         </div>
+        {amaliygaTaklifQilish && <span className="badge bg-emerald-100 text-emerald-700 text-xs shrink-0">✓ Nazariydan o'tgan</span>}
       </div>
 
       <div className="mt-4 space-y-3">
@@ -133,6 +541,76 @@ function UrinishKartochka({ urinish, tahrirRuxsat, sabablar, onYangilash }) {
             onBelgilash={(q, sababId) => belgilash("amaliy_natija", q, "amaliy_sabab_id", sababId ?? null)}
           />
         )}
+      </div>
+
+      {amaliygaTaklifQilish && otkazishRuxsat && (
+        <AmaliygaOtkazishForma
+          talabaId={talaba.id}
+          imtihonId={imtihonId}
+          amaliyOqituvchilar={amaliyOqituvchilar}
+          onOtkazildi={onOtkazildi}
+        />
+      )}
+    </div>
+  );
+}
+
+function AmaliygaOtkazishForma({ talabaId, imtihonId, amaliyOqituvchilar, onOtkazildi }) {
+  const [ochiq, setOchiq] = useState(false);
+  const [oqituvchiId, setOqituvchiId] = useState("");
+  const [yuklanmoqda, setYuklanmoqda] = useState(false);
+  const [xato, setXato] = useState("");
+
+  async function otkazish() {
+    setYuklanmoqda(true);
+    setXato("");
+    const supabase = supabaseBrowser();
+    const { error } = await supabase.rpc("amaliyga_otkazish", {
+      p_talaba_id: talabaId,
+      p_imtihon_id: imtihonId,
+      p_amaliy_oqituvchi_id: oqituvchiId || null,
+    });
+    setYuklanmoqda(false);
+    if (error) {
+      setXato(error.message);
+      return;
+    }
+    setOchiq(false);
+    onOtkazildi();
+  }
+
+  if (!ochiq) {
+    return (
+      <button type="button" onClick={() => setOchiq(true)} className="btn-secondary !py-2 !text-sm w-full mt-3">
+        + Amaliy imtihonga qo'shish
+      </button>
+    );
+  }
+
+  return (
+    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mt-3 space-y-2">
+      <div className="text-xs font-medium text-emerald-700">Shu imtihon kuniga amaliyga biriktirilsinmi?</div>
+      <select className="input !py-1.5 !text-sm" value={oqituvchiId} onChange={(e) => setOqituvchiId(e.target.value)}>
+        <option value="">Amaliy o'qituvchi — Yo'q</option>
+        {amaliyOqituvchilar.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.ism_familya}
+          </option>
+        ))}
+      </select>
+      {xato && <div className="text-xs text-rose-600">{xato}</div>}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={yuklanmoqda}
+          onClick={otkazish}
+          className="btn-primary !py-1.5 !text-sm flex-1 disabled:opacity-50"
+        >
+          {yuklanmoqda ? "…" : "Tasdiqlash"}
+        </button>
+        <button type="button" onClick={() => setOchiq(false)} className="btn-secondary !py-1.5 !text-sm">
+          Bekor
+        </button>
       </div>
     </div>
   );

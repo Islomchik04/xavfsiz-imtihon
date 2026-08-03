@@ -14,7 +14,7 @@ import { OQITUVCHI_TURI } from "@/lib/constants";
 const URINISH_SELECT = `
   talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija, created_at,
   imtihonlar(sana),
-  talabalar(ism_familya, nazariy_oqituvchi_id, amaliy_oqituvchi_id, filiallar(nomi), guruhlar(nomi))
+  talabalar(ism_familya, toifa, nazariy_oqituvchi_id, amaliy_oqituvchi_id, filiallar(nomi), guruhlar(nomi))
 `;
 
 // Superadmin uchun: tanlangan oyning KPI/maosh hisobotini Excel (.xlsx)
@@ -154,6 +154,7 @@ export async function GET(so_rov) {
     if (!sana) continue;
     const hafta = haftaBoshi(sana);
     const talaba = u.talabalar;
+    if (talaba?.toifa === "express") continue; // Express — KPI hisobiga kirmaydi
 
     function qatorQoshish(oqituvchiId, turi, natijaMaydon, urinishRaqami) {
       const oq = oqMap.get(oqituvchiId);
