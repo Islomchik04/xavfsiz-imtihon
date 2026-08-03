@@ -16,7 +16,6 @@ export const IMPORT_USTUNLARI = [
   { key: "forma_083", header: "083 forma *", namuna: FORMA_083_LABEL[true], kenglik: 14 },
   { key: "imtihon_turi", header: "Imtihon turi *", namuna: IMTIHON_TURI.ikkalasi, kenglik: 26 },
   { key: "nazariy_oqituvchi", header: "Nazariy o'qituvchi", namuna: "", kenglik: 24 },
-  { key: "amaliy_oqituvchi", header: "Amaliy o'qituvchi", namuna: "", kenglik: 24 },
 ];
 
 // Header qatoridan keyingi BIRINCHI qator har doim "namuna" hisoblanadi va

@@ -57,9 +57,6 @@ export async function POST(so_rov) {
   const nazariyMap = new Map(
     oqituvchilar.filter((o) => o.turi === "nazariy").map((o) => [o.ism_familya.trim().toLowerCase(), o.id])
   );
-  const amaliyMap = new Map(
-    oqituvchilar.filter((o) => o.turi === "amaliy").map((o) => [o.ism_familya.trim().toLowerCase(), o.id])
-  );
 
   let workbook;
   try {
@@ -94,7 +91,6 @@ export async function POST(so_rov) {
     const forma083Matni = matn(5);
     const imtihonTuriMatni = matn(6);
     const nazariyIsmi = matn(7);
-    const amaliyIsmi = matn(8);
 
     // Butunlay bo'sh qatorni jimgina o'tkazib yuboramiz (xato hisoblanmaydi).
     if (!ismFamilya && !telefonMatni && !toifaMatni && !guruhRaqami && !forma083Matni && !imtihonTuriMatni) continue;
@@ -117,20 +113,12 @@ export async function POST(so_rov) {
     if (!imtihonTuri) { xatoQoshish(`Imtihon turi "${imtihonTuriMatni}" tanilmadi`); continue; }
 
     const nazariyKerak = imtihonTuri === "nazariy" || imtihonTuri === "ikkalasi";
-    const amaliyKerak = imtihonTuri === "amaliy" || imtihonTuri === "ikkalasi";
 
     let nazariyOqituvchiId = null;
     if (nazariyKerak) {
       if (!nazariyIsmi) { xatoQoshish("Nazariy o'qituvchi ko'rsatilmagan"); continue; }
       nazariyOqituvchiId = nazariyMap.get(nazariyIsmi.toLowerCase());
       if (!nazariyOqituvchiId) { xatoQoshish(`Nazariy o'qituvchi "${nazariyIsmi}" bu filialda topilmadi`); continue; }
-    }
-
-    let amaliyOqituvchiId = null;
-    if (amaliyKerak) {
-      if (!amaliyIsmi) { xatoQoshish("Amaliy o'qituvchi ko'rsatilmagan"); continue; }
-      amaliyOqituvchiId = amaliyMap.get(amaliyIsmi.toLowerCase());
-      if (!amaliyOqituvchiId) { xatoQoshish(`Amaliy o'qituvchi "${amaliyIsmi}" bu filialda topilmadi`); continue; }
     }
 
     let guruhId;
@@ -150,7 +138,6 @@ export async function POST(so_rov) {
       forma_083: forma083,
       imtihon_turi: imtihonTuri,
       nazariy_oqituvchi_id: nazariyOqituvchiId,
-      amaliy_oqituvchi_id: amaliyOqituvchiId,
       qoshgan: user.id,
     });
 

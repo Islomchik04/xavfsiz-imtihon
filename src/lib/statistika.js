@@ -139,6 +139,8 @@ export function oqituvchilarReytingi(urinishlar, guruhKaliti) {
 
   // Diqqat: "kelmadi" va "boshqa" natijalari bu yerda ham HISOBGA OLINMAYDI —
   // faqat "otdi"/"otmadi" reytingga ta'sir qiladi (KPI bilan bir xil qoida).
+  // "Amaliy o'qituvchi" tushunchasi olib tashlangan — amaliy natijalar
+  // reytingga umuman kiritilmaydi, faqat nazariy natijalar hisoblanadi.
   for (const u of urinishlar) {
     const kalit = guruhKaliti(u);
     if (!kalit) continue;
@@ -148,14 +150,6 @@ export function oqituvchilarReytingi(urinishlar, guruhKaliti) {
         u.talabalar?.nazariy_oqituvchi_id,
         u.talabalar?.nazariy_oqituvchilar?.ism_familya,
         u.nazariy_natija === "otdi"
-      );
-    }
-    if (u.amaliy_kerak && (u.amaliy_natija === "otdi" || u.amaliy_natija === "otmadi")) {
-      qoshish(
-        kalit,
-        u.talabalar?.amaliy_oqituvchi_id,
-        u.talabalar?.amaliy_oqituvchilar?.ism_familya,
-        u.amaliy_natija === "otdi"
       );
     }
   }
@@ -185,6 +179,8 @@ export function davrBoyichaStatistika(urinishlar, kalitFn, korinishFn) {
 
   // Bu yerda ham "kelmadi"/"boshqa" jami/otgan/otmagan hisobidan chiqarib
   // tashlanadi — faqat "otdi"/"otmadi" natijalari sanaladi (KPI bilan bir xil).
+  // "Amaliy o'qituvchi" tushunchasi olib tashlangan — bu jamlar ham faqat
+  // nazariy natijalardan hisoblanadi.
   const jamlar = new Map(); // kalit -> {jami, otgan, otmagan}
   for (const u of urinishlar) {
     const kalit = kalitFn(u);
@@ -194,11 +190,6 @@ export function davrBoyichaStatistika(urinishlar, kalitFn, korinishFn) {
     if (u.nazariy_kerak && (u.nazariy_natija === "otdi" || u.nazariy_natija === "otmadi")) {
       y.jami += 1;
       if (u.nazariy_natija === "otdi") y.otgan += 1;
-      else y.otmagan += 1;
-    }
-    if (u.amaliy_kerak && (u.amaliy_natija === "otdi" || u.amaliy_natija === "otmadi")) {
-      y.jami += 1;
-      if (u.amaliy_natija === "otdi") y.otgan += 1;
       else y.otmagan += 1;
     }
   }

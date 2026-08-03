@@ -42,7 +42,6 @@ export default function DashboardClient({ profile, talabalar, urinishlar, barcha
   const stat = umumiyStatistika(talabalar, davrFiltrlanganUrinishlar);
   const filiallar = filialBoyichaStatistika(talabalar, davrFiltrlanganUrinishlar);
   const nazariyOqituvchilar = oqituvchiBoyichaStatistika(davrFiltrlanganUrinishlar, "nazariy");
-  const amaliyOqituvchilar = oqituvchiBoyichaStatistika(davrFiltrlanganUrinishlar, "amaliy");
 
   // --- Oy va imtihon kuni bo'yicha reyting (har doim umumiy ma'lumotdan) ------
   const oyReytingi = oqituvchilarReytingi(urinishlar, (u) => {
@@ -193,7 +192,6 @@ export default function DashboardClient({ profile, talabalar, urinishlar, barcha
 
       <div className="grid md:grid-cols-2 gap-6">
         <OqituvchiJadval sarlavha="Nazariy o'qituvchilar" royxat={nazariyOqituvchilar} />
-        <OqituvchiJadval sarlavha="Amaliy o'qituvchilar" royxat={amaliyOqituvchilar} />
       </div>
     </div>
   );

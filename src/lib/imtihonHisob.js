@@ -178,11 +178,15 @@ export function kpiDaraja(otgan, otmagan) {
 
 // urinishlar: bir oyga tegishli talaba_imtihonlar qatorlari, quyidagi
 // bog'langan ma'lumot bilan birga: imtihon.sana,
-// urinish.nazariy_oqituvchi_id / urinish.amaliy_oqituvchi_id (talaba_imtihonlar
-// jadvalidagi SNAPSHOT ustunlar — shu urinish PAYTIDA biriktirilgan
-// o'qituvchi, talaba keyinchalik boshqa o'qituvchiga o'tkazilsa ham bu
-// o'zgarmaydi), talaba.filial_id, talaba.toifa
+// urinish.nazariy_oqituvchi_id (talaba_imtihonlar jadvalidagi SNAPSHOT
+// ustun — shu urinish PAYTIDA biriktirilgan o'qituvchi, talaba keyinchalik
+// boshqa o'qituvchiga o'tkazilsa ham bu o'zgarmaydi), talaba.filial_id,
+// talaba.toifa
 // oqituvchilar: {id, ism_familya, turi} ro'yxati
+//
+// Diqqat: "amaliy o'qituvchi" tushunchasi tizimdan olib tashlangan — amaliy
+// natijalar (otdi/otmadi) KPI hisobiga UMUMAN kiritilmaydi, faqat nazariy
+// natijalar bo'yicha o'qituvchiga mukofot/jarima hisoblanadi.
 export function oqituvchilarKpiHisoblash(urinishlar, oqituvchilar) {
   const oqMap = new Map(oqituvchilar.map((o) => [o.id, o]));
   // oqituvchi_id -> hafta -> {otgan, otmagan}
@@ -221,12 +225,8 @@ export function oqituvchilarKpiHisoblash(urinishlar, oqituvchilar) {
         qoshish(u.nazariy_oqituvchi_id, hafta, otdimi);
       }
     }
-    if (u.amaliy_kerak && (u.amaliy_natija === "otdi" || u.amaliy_natija === "otmadi")) {
-      const otdimi = u.amaliy_natija === "otdi";
-      if (!(otdimi && u.amaliyUrinishRaqami > 1)) {
-        qoshish(u.amaliy_oqituvchi_id, hafta, otdimi);
-      }
-    }
+    // Amaliy natijalar KPI hisobiga kiritilmaydi — "amaliy o'qituvchi"
+    // tushunchasi olib tashlangan.
   }
 
   const natija = [];

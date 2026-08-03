@@ -43,7 +43,6 @@ export async function GET(so_rov) {
   const shuFilialOqIdlari = new Set((oqFiliallar || []).map((o) => o.oqituvchi_id));
   const oqituvchilar = (oqituvchilarXom || []).filter((o) => shuFilialOqIdlari.has(o.id));
   const nazariyOqituvchilar = oqituvchilar.filter((o) => o.turi === "nazariy").map((o) => o.ism_familya);
-  const amaliyOqituvchilar = oqituvchilar.filter((o) => o.turi === "amaliy").map((o) => o.ism_familya);
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Xavfsiz Imtihon";
@@ -57,15 +56,15 @@ export async function GET(so_rov) {
 
   const namunaQator = bet.addRow(Object.fromEntries(IMPORT_USTUNLARI.map((u) => [u.key, u.namuna])));
   namunaQator.font = { italic: true, color: { argb: "FF94A3B8" } };
-  bet.getCell("I2").value = "☝️ Bu namuna qator — import paytida har doim o'tkazib yuboriladi. O'chirishingiz shart emas.";
-  bet.getCell("I1").value = "Izoh";
-  bet.getCell("I1").font = { bold: true };
-  bet.getColumn(9).width = 55;
+  bet.getCell("H2").value = "☝️ Bu namuna qator — import paytida har doim o'tkazib yuboriladi. O'chirishingiz shart emas.";
+  bet.getCell("H1").value = "Izoh";
+  bet.getCell("H1").font = { bold: true };
+  bet.getColumn(8).width = 55;
 
   // 3-qatordan boshlab ~200 qatorga stil (chegaralar) beramiz, ko'rinishi
   // uchun — real ma'lumot yo'q, faqat vizual.
   for (let r = 3; r <= 200; r++) {
-    for (let c = 1; c <= 8; c++) {
+    for (let c = 1; c <= 7; c++) {
       bet.getCell(r, c).border = { bottom: { style: "hair", color: { argb: "FFF1F5F9" } } };
     }
   }
@@ -77,7 +76,6 @@ export async function GET(so_rov) {
     { header: "Imtihon turi", key: "imtihon_turi", width: 26 },
     { header: "083 forma", key: "forma_083", width: 14 },
     { header: `${filial.nomi} — Nazariy o'qituvchi`, key: "nazariy", width: 26 },
-    { header: `${filial.nomi} — Amaliy o'qituvchi`, key: "amaliy", width: 26 },
   ];
   yordamBet.getRow(1).font = { bold: true };
 
@@ -89,7 +87,6 @@ export async function GET(so_rov) {
     imtihonTuriQiymatlari.length,
     forma083Qiymatlari.length,
     nazariyOqituvchilar.length,
-    amaliyOqituvchilar.length,
     1
   );
   for (let i = 0; i < maxUzunlik; i++) {
@@ -98,7 +95,6 @@ export async function GET(so_rov) {
       imtihon_turi: imtihonTuriQiymatlari[i] || null,
       forma_083: forma083Qiymatlari[i] || null,
       nazariy: nazariyOqituvchilar[i] || null,
-      amaliy: amaliyOqituvchilar[i] || null,
     });
   }
 
@@ -120,7 +116,6 @@ export async function GET(so_rov) {
   validatsiya("E", `Yordam!$C$2:$C$${maxUzunlik + 1}`); // 083 forma
   validatsiya("F", `Yordam!$B$2:$B$${maxUzunlik + 1}`); // Imtihon turi
   if (nazariyOqituvchilar.length > 0) validatsiya("G", `Yordam!$D$2:$D$${maxUzunlik + 1}`);
-  if (amaliyOqituvchilar.length > 0) validatsiya("H", `Yordam!$E$2:$E$${maxUzunlik + 1}`);
 
   const buffer = await workbook.xlsx.writeBuffer();
   const fayNomi = `talabalar-shablon-${filial.nomi.replace(/[^a-zA-Z0-9]+/g, "-")}.xlsx`;

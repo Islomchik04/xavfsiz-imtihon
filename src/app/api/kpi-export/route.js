@@ -13,7 +13,7 @@ import { OQITUVCHI_TURI } from "@/lib/constants";
 
 const URINISH_SELECT = `
   talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija, created_at,
-  nazariy_oqituvchi_id, amaliy_oqituvchi_id,
+  nazariy_oqituvchi_id,
   imtihonlar(sana),
   talabalar(ism_familya, toifa, filiallar(nomi), guruhlar(nomi))
 `;
@@ -179,11 +179,10 @@ export async function GET(so_rov) {
       });
     }
 
+    // Amaliy o'qituvchi tushunchasi olib tashlangan — faqat nazariy
+    // natijalar o'qituvchiga bog'lab ko'rsatiladi.
     if (u.nazariy_kerak) {
       qatorQoshish(u.nazariy_oqituvchi_id, "nazariy", "nazariy_natija", u.nazariyUrinishRaqami);
-    }
-    if (u.amaliy_kerak) {
-      qatorQoshish(u.amaliy_oqituvchi_id, "amaliy", "amaliy_natija", u.amaliyUrinishRaqami);
     }
   }
 

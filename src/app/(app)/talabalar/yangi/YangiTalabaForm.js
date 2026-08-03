@@ -42,9 +42,6 @@ export default function YangiTalabaForm({
   const [nazariyOqituvchiId, setNazariyOqituvchiId] = useState(
     tahrirlanayotgan?.nazariy_oqituvchi_id || ""
   );
-  const [amaliyOqituvchiId, setAmaliyOqituvchiId] = useState(
-    tahrirlanayotgan?.amaliy_oqituvchi_id || ""
-  );
   const [xato, setXato] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
 
@@ -61,17 +58,8 @@ export default function YangiTalabaForm({
       ),
     [oqituvchilar, filialId, superadminRol]
   );
-  const amaliyOqituvchilar = useMemo(
-    () =>
-      oqituvchilar.filter(
-        (o) => o.turi === "amaliy" && (superadminRol || (o.filiallar || []).includes(filialId))
-      ),
-    [oqituvchilar, filialId, superadminRol]
-  );
-
   const expressToifa = toifa === "express";
   const nazariyKerak = !expressToifa && (imtihonTuri === "nazariy" || imtihonTuri === "ikkalasi");
-  const amaliyKerak = !expressToifa && (imtihonTuri === "amaliy" || imtihonTuri === "ikkalasi");
 
   async function yuborish(e) {
     e.preventDefault();
@@ -121,7 +109,6 @@ export default function YangiTalabaForm({
       forma_083: forma083 === "tayyor",
       imtihon_turi: imtihonTuri,
       nazariy_oqituvchi_id: nazariyKerak && nazariyOqituvchiId ? nazariyOqituvchiId : null,
-      amaliy_oqituvchi_id: amaliyKerak && amaliyOqituvchiId ? amaliyOqituvchiId : null,
     };
 
     let natija;
@@ -162,7 +149,6 @@ export default function YangiTalabaForm({
             onChange={(e) => {
               setFilialId(e.target.value);
               setNazariyOqituvchiId("");
-              setAmaliyOqituvchiId("");
             }}
             required
           >
@@ -213,7 +199,6 @@ export default function YangiTalabaForm({
             setToifa(yangiToifa);
             if (yangiToifa === "express") {
               setNazariyOqituvchiId("");
-              setAmaliyOqituvchiId("");
             }
           }}
           required
@@ -333,30 +318,6 @@ export default function YangiTalabaForm({
               {superadminRol
                 ? "Tizimda faol nazariy o'qituvchi yo'q — Sozlamalardan qo'shing."
                 : "Bu filialga biriktirilgan nazariy o'qituvchi yo'q — Sozlamalardan qo'shing."}
-            </p>
-          )}
-        </div>
-      )}
-
-      {amaliyKerak && (
-        <div>
-          <label className="label">Amaliy o'qituvchi</label>
-          <select
-            className="input"
-            value={amaliyOqituvchiId}
-            onChange={(e) => setAmaliyOqituvchiId(e.target.value)}
-            disabled={!superadminRol && !filialId}
-          >
-            <option value="">Yo'q (biriktirilmagan)</option>
-            {amaliyOqituvchilar.map((o) => (
-              <option key={o.id} value={o.id}>{o.ism_familya}</option>
-            ))}
-          </select>
-          {(superadminRol || filialId) && amaliyOqituvchilar.length === 0 && (
-            <p className="text-xs text-amber-600 mt-1">
-              {superadminRol
-                ? "Tizimda faol amaliy o'qituvchi yo'q — Sozlamalardan qo'shing."
-                : "Bu filialga biriktirilgan amaliy o'qituvchi yo'q — Sozlamalardan qo'shing."}
             </p>
           )}
         </div>

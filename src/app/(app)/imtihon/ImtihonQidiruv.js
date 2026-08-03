@@ -11,8 +11,7 @@ const SELECT = `
   talabalar!inner(
     id, ism_familya,
     filiallar(nomi), guruhlar(nomi),
-    nazariy_oqituvchilar:oqituvchilar!nazariy_oqituvchi_id(ism_familya),
-    amaliy_oqituvchilar:oqituvchilar!amaliy_oqituvchi_id(ism_familya)
+    nazariy_oqituvchilar:oqituvchilar!nazariy_oqituvchi_id(ism_familya)
   )
 `;
 
@@ -121,7 +120,6 @@ function UrinishKartochka({ urinish, onYangilash }) {
         {urinish.amaliy_kerak && (
           <NatijaTugmalari
             sarlavha="Amaliy"
-            oqituvchi={talaba.amaliy_oqituvchilar?.ism_familya}
             natija={urinish.amaliy_natija}
             yakunlangan={urinish.amaliy_natija !== "kutilmoqda"}
             yuklanmoqda={yuklanmoqdaMaydon === "amaliy_natija"}

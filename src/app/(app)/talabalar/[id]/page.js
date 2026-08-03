@@ -6,13 +6,13 @@ import Badge from "@/components/Badge";
 import AsosiyMalumotlarCard from "./AsosiyMalumotlarCard";
 import HujjatchiForm from "./HujjatchiForm";
 import NatijaForm from "./NatijaForm";
+import TalabaniOchirish from "./TalabaniOchirish";
 
 const TALABA_SELECT = `
   *,
   filiallar(id, nomi),
   guruhlar(id, nomi),
   nazariy_oqituvchilar:oqituvchilar!nazariy_oqituvchi_id(id, ism_familya),
-  amaliy_oqituvchilar:oqituvchilar!amaliy_oqituvchi_id(id, ism_familya),
   qoshgan_profil:profiles!qoshgan(ism_familya),
   hujjat_tayyorlagan_profil:profiles!hujjat_tayyorlagan(ism_familya)
 `;
@@ -100,6 +100,9 @@ export default async function TalabaDetailSahifa({ params }) {
           )}
           <span className={`badge ${TALABA_HOLATI_RANG[holat]}`}>{TALABA_HOLATI[holat]}</span>
         </div>
+        {profile.role === "superadmin" && (
+          <TalabaniOchirish talabaId={talaba.id} ismFamilya={talaba.ism_familya} />
+        )}
       </div>
 
       <AsosiyMalumotlarCard

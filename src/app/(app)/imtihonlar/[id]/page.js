@@ -8,8 +8,7 @@ const URINISH_SELECT = `
   talabalar!inner(
     id, ism_familya, toifa,
     filiallar(nomi), guruhlar(nomi),
-    nazariy_oqituvchilar:oqituvchilar!nazariy_oqituvchi_id(ism_familya),
-    amaliy_oqituvchilar:oqituvchilar!amaliy_oqituvchi_id(ism_familya)
+    nazariy_oqituvchilar:oqituvchilar!nazariy_oqituvchi_id(ism_familya)
   )
 `;
 
@@ -20,7 +19,7 @@ export default async function ImtihonTafsilotSahifa({ params }) {
     redirect("/dashboard");
   }
 
-  const [{ data: imtihon, error: imtihonXato }, { data: urinishlar }, { data: sabablar }, { data: amaliyOqituvchilar }] = await Promise.all([
+  const [{ data: imtihon, error: imtihonXato }, { data: urinishlar }, { data: sabablar }, { data: oqituvchilar }] = await Promise.all([
     supabase.from("imtihonlar").select("id, sana, izoh, holati, boshlangan_vaqt, yakunlangan_vaqt").eq("id", params.id).single(),
     supabase
       .from("talaba_imtihonlar")
@@ -28,7 +27,7 @@ export default async function ImtihonTafsilotSahifa({ params }) {
       .eq("imtihon_id", params.id)
       .order("ism_familya", { foreignTable: "talabalar" }),
     supabase.from("sabablar").select("id, matn").eq("faol", true).order("created_at"),
-    supabase.from("oqituvchilar").select("id, ism_familya").eq("turi", "amaliy").eq("faol", true).order("ism_familya"),
+    supabase.from("oqituvchilar").select("id, ism_familya, turi").eq("faol", true).order("ism_familya"),
   ]);
 
   if (imtihonXato || !imtihon) notFound();
@@ -38,9 +37,9 @@ export default async function ImtihonTafsilotSahifa({ params }) {
       imtihon={imtihon}
       boshlangichUrinishlar={urinishlar || []}
       natijaBelgilashRuxsat={["imtihonchi", "superadmin"].includes(profile.role)}
-      biriktirishRuxsat={["hujjatchi", "superadmin"].includes(profile.role)}
+      biriktirishRuxsat={["hujjatchi", "superadmin", "imtihonchi"].includes(profile.role)}
       holatBoshqarishRuxsat={["imtihonchi", "hujjatchi", "superadmin"].includes(profile.role)}
-      amaliyOqituvchilar={amaliyOqituvchilar || []}
+      oqituvchilar={oqituvchilar || []}
       sabablar={sabablar || []}
     />
   );

@@ -6,9 +6,8 @@ const URINISH_SELECT = `
   imtihonlar(id, sana, izoh),
   talabalar(
     filial_id, filiallar(nomi),
-    nazariy_oqituvchi_id, amaliy_oqituvchi_id,
-    nazariy_oqituvchilar:oqituvchilar!nazariy_oqituvchi_id(ism_familya),
-    amaliy_oqituvchilar:oqituvchilar!amaliy_oqituvchi_id(ism_familya)
+    nazariy_oqituvchi_id,
+    nazariy_oqituvchilar:oqituvchilar!nazariy_oqituvchi_id(ism_familya)
   )
 `;
 

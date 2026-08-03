@@ -66,9 +66,6 @@ export default function AsosiyMalumotlarCard({ talaba, tahrirRuxsat, formaMalumo
         {talaba.imtihon_turi !== "amaliy" && (
           <Satr label="Nazariy o'qituvchi" qiymat={talaba.nazariy_oqituvchilar?.ism_familya} />
         )}
-        {talaba.imtihon_turi !== "nazariy" && (
-          <Satr label="Amaliy o'qituvchi" qiymat={talaba.amaliy_oqituvchilar?.ism_familya} />
-        )}
         <Satr label="Ro'yxatga olgan" qiymat={talaba.qoshgan_profil?.ism_familya} />
         <Satr label="Qo'shilgan sana" qiymat={new Date(talaba.created_at).toLocaleString("uz-UZ")} />
       </div>
