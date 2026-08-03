@@ -512,7 +512,8 @@ function GuruhlarBolimi({ guruhlar }) {
       <h2 className="font-semibold text-slate-800 mb-1">Guruhlar</h2>
       <p className="text-sm text-slate-500 mb-4">
         Guruhlar bu yerda qo'lda yaratilmaydi — Admin yoki Hujjatchi talaba qo'shganda
-        Int'alim guruh raqamini kiritadi, tizim mos guruhni avtomatik topadi yoki yaratadi.
+        Int'alim guruh raqamini kiritadi, tizim mos guruhni avtomatik topadi yoki yaratadi. Bir xil
+        nomli guruh turli filiallardan bo'lsa ham bitta guruhga birlashadi.
       </p>
       {guruhlar.length === 0 ? (
         <p className="text-sm text-slate-400">Hozircha guruh yo'q.</p>
@@ -522,7 +523,7 @@ function GuruhlarBolimi({ guruhlar }) {
             <li key={g.id} className="py-2.5 flex justify-between items-center text-sm">
               <span>
                 <span className="font-medium text-slate-700">{g.nomi}</span>
-                <span className="text-slate-400 ml-2">{g.filiallar?.nomi}</span>
+                <span className="text-slate-400 ml-2">boshlang'ich: {g.filiallar?.nomi}</span>
               </span>
               <button
                 onClick={() => faollikniOzgartirish(g.id, g.faol)}

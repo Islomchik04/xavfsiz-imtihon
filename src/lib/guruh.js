@@ -1,7 +1,10 @@
 // Guruhni "top yoki yarat" (find-or-create) — Admin/Hujjatchi guruh raqamini
-// yozganda, agar shu filialda shu raqamli guruh mavjud bo'lsa ishlatiladi,
-// aks holda avtomatik yaratiladi (bir xil raqamli guruhlar bitta guruhga
-// birlashadi — guruhlar jadvalidagi unique(nomi, filial_id) shuni ta'minlaydi).
+// yozganda, agar SHU NOMLI guruh tizimda (filialdan qat'i nazar) mavjud
+// bo'lsa o'sha ishlatiladi, aks holda avtomatik yaratiladi. Bir xil nomli
+// guruhlar endi turli filiallar orasida ham bitta guruhga birlashadi —
+// guruhlar jadvalidagi unique(nomi) shuni ta'minlaydi. filialId faqat guruh
+// YANGI yaratilganda uning "boshlang'ich" filiali sifatida saqlanadi (guruh
+// keyinchalik boshqa filiallardan ham talaba qabul qilishi mumkin).
 export async function guruhIdTop(supabase, raqam, filialId) {
   const nomi = String(raqam).trim();
 
@@ -9,7 +12,6 @@ export async function guruhIdTop(supabase, raqam, filialId) {
     .from("guruhlar")
     .select("id")
     .eq("nomi", nomi)
-    .eq("filial_id", filialId)
     .maybeSingle();
   if (mavjud.data) return mavjud.data.id;
 
@@ -26,7 +28,6 @@ export async function guruhIdTop(supabase, raqam, filialId) {
     .from("guruhlar")
     .select("id")
     .eq("nomi", nomi)
-    .eq("filial_id", filialId)
     .maybeSingle();
   if (qayta.data) return qayta.data.id;
 

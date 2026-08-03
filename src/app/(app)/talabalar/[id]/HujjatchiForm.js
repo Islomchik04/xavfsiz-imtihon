@@ -74,6 +74,7 @@ export default function HujjatchiForm({ talaba, imtihonlar }) {
       setXato(error.message);
       return;
     }
+    router.push("/talabalar");
     router.refresh();
   }
 

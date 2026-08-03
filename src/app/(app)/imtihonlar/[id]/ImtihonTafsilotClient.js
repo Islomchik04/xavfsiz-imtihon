@@ -718,6 +718,7 @@ function NatijaTugmalari({
   onBelgilash,
 }) {
   const yakunlangan = natija !== "kutilmoqda";
+  const [modalOchiq, setModalOchiq] = useState(false);
   // null | "boshqa" | "chetlatildi" — ikkalasi ham bir xil sabab-tanlash
   // panelidan (umumiy "sabablar" ro'yxatidan) foydalanadi.
   const [sababUchun, setSababUchun] = useState(null);
@@ -725,19 +726,36 @@ function NatijaTugmalari({
 
   const joriySabab = sababId ? sabablar.find((s) => s.id === sababId)?.matn : null;
 
-  function sababniOchish(turi) {
-    setSababUchun((v) => (v === turi ? null : turi));
+  function modalniOchish() {
+    setSababUchun(null);
+    setTanlanganSabab("");
+    setModalOchiq(true);
+  }
+
+  function modalniYopish() {
+    setModalOchiq(false);
+    setSababUchun(null);
+    setTanlanganSabab("");
+  }
+
+  function oddiyBelgilash(qiymat) {
+    onBelgilash(qiymat);
+    modalniYopish();
+  }
+
+  function sababniOchish(t) {
+    setSababUchun((v) => (v === t ? null : t));
     setTanlanganSabab("");
   }
 
   function sababniTasdiqlash() {
     onBelgilash(sababUchun, tanlanganSabab);
-    setSababUchun(null);
+    modalniYopish();
   }
 
   return (
     <div className="bg-slate-50 rounded-xl p-3">
-      <div className="flex justify-between items-center mb-2">
+      <div className="flex justify-between items-center gap-2">
         <div>
           <span className="text-sm font-semibold text-slate-700">{sarlavha}</span>
           {oqituvchi ? (
@@ -753,89 +771,122 @@ function NatijaTugmalari({
             )
           )}
         </div>
-        <span className="text-xs font-medium text-slate-500">
-          {NATIJA[natija]}
-          {joriySabab && ` — ${joriySabab}`}
-        </span>
-      </div>
-      {tahrirRuxsat && !imtihonBoshlandimi && (
-        <div className="text-xs text-slate-400 bg-white border border-dashed border-slate-200 rounded-lg px-3 py-2 text-center">
-          Natija belgilash uchun avval imtihonni boshlang
-        </div>
-      )}
-      {tahrirRuxsat && imtihonBoshlandimi ? (
-        <div className="space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs font-medium text-slate-500 text-right">
+            {NATIJA[natija]}
+            {joriySabab && ` — ${joriySabab}`}
+          </span>
+          {tahrirRuxsat && !yakunlangan && (
             <button
-              disabled={yuklanmoqda || yakunlangan}
-              onClick={() => onBelgilash("otdi")}
-              className={`!py-4 !text-base btn ${
-                natija === "otdi" ? "bg-emerald-600 text-white" : "bg-white border border-emerald-300 text-emerald-700"
-              } disabled:opacity-50`}
+              type="button"
+              disabled={!imtihonBoshlandimi || yuklanmoqda}
+              onClick={modalniOchish}
+              className="btn-secondary !py-1.5 !px-3 !text-xs disabled:opacity-40 shrink-0"
             >
-              O'TDI
+              {yuklanmoqda ? "…" : "Holati"}
             </button>
-            <button
-              disabled={yuklanmoqda || yakunlangan}
-              onClick={() => onBelgilash("otmadi")}
-              className={`!py-4 !text-base btn ${
-                natija === "otmadi" ? "bg-rose-600 text-white" : "bg-white border border-rose-300 text-rose-700"
-              } disabled:opacity-50`}
-            >
-              O'TMADI
-            </button>
-            <button
-              disabled={yuklanmoqda || yakunlangan}
-              onClick={() => onBelgilash("kelmadi")}
-              className={`!py-2.5 !text-sm btn ${
-                natija === "kelmadi" ? "bg-amber-500 text-white" : "bg-white border border-amber-300 text-amber-700"
-              } disabled:opacity-50`}
-            >
-              KELMADI
-            </button>
-            <button
-              disabled={yuklanmoqda || yakunlangan}
-              onClick={() => sababniOchish("boshqa")}
-              className={`!py-2.5 !text-sm btn ${
-                natija === "boshqa" ? "bg-violet-500 text-white" : "bg-white border border-violet-300 text-violet-700"
-              } disabled:opacity-50`}
-            >
-              BOSHQA
-            </button>
-          </div>
-          <button
-            disabled={yuklanmoqda || yakunlangan}
-            onClick={() => sababniOchish("chetlatildi")}
-            className={`w-full !py-2.5 !text-sm btn ${
-              natija === "chetlatildi" ? "bg-slate-700 text-white" : "bg-white border border-slate-400 text-slate-600"
-            } disabled:opacity-50`}
-          >
-            IMTIHONDAN CHETLATISH
-          </button>
-          {sababUchun && !yakunlangan && (
-            <div className="flex gap-2 items-center bg-white border border-violet-200 rounded-lg p-2">
-              <select
-                className="input !py-1.5 !text-sm flex-1"
-                value={tanlanganSabab}
-                onChange={(e) => setTanlanganSabab(e.target.value)}
-              >
-                <option value="">Sababni tanlang…</option>
-                {sabablar.map((s) => (
-                  <option key={s.id} value={s.id}>{s.matn}</option>
-                ))}
-              </select>
-              <button
-                type="button"
-                disabled={!tanlanganSabab || yuklanmoqda}
-                onClick={sababniTasdiqlash}
-                className="btn-primary !py-1.5 !text-sm shrink-0 disabled:opacity-50"
-              >
-                Tasdiqlash
-              </button>
-            </div>
           )}
         </div>
-      ) : null}
+      </div>
+      {tahrirRuxsat && !yakunlangan && !imtihonBoshlandimi && (
+        <div className="text-xs text-slate-400 mt-2">Natija belgilash uchun avval imtihonni boshlang</div>
+      )}
+
+      <AnimatePresence>
+        {modalOchiq && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            onClick={modalniYopish}
+          >
+            <motion.div
+              className="bg-white rounded-2xl p-4 w-full max-w-sm space-y-3"
+              initial={{ scale: 0.94, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.94, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center">
+                <div className="font-semibold text-slate-700 text-sm">{sarlavha} — natijani belgilash</div>
+                <button
+                  type="button"
+                  onClick={modalniYopish}
+                  className="text-slate-400 hover:text-slate-600 text-xl leading-none px-1"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  disabled={yuklanmoqda}
+                  onClick={() => oddiyBelgilash("otdi")}
+                  className="btn !py-4 !text-base bg-white border border-emerald-300 text-emerald-700 disabled:opacity-50"
+                >
+                  O'TDI
+                </button>
+                <button
+                  disabled={yuklanmoqda}
+                  onClick={() => oddiyBelgilash("otmadi")}
+                  className="btn !py-4 !text-base bg-white border border-rose-300 text-rose-700 disabled:opacity-50"
+                >
+                  O'TMADI
+                </button>
+                <button
+                  disabled={yuklanmoqda}
+                  onClick={() => oddiyBelgilash("kelmadi")}
+                  className="btn !py-2.5 !text-sm bg-white border border-amber-300 text-amber-700 disabled:opacity-50"
+                >
+                  KELMADI
+                </button>
+                <button
+                  disabled={yuklanmoqda}
+                  onClick={() => sababniOchish("boshqa")}
+                  className={`btn !py-2.5 !text-sm ${
+                    sababUchun === "boshqa" ? "bg-violet-500 text-white" : "bg-white border border-violet-300 text-violet-700"
+                  } disabled:opacity-50`}
+                >
+                  BOSHQA
+                </button>
+              </div>
+              <button
+                disabled={yuklanmoqda}
+                onClick={() => sababniOchish("chetlatildi")}
+                className={`w-full btn !py-2.5 !text-sm ${
+                  sababUchun === "chetlatildi" ? "bg-slate-700 text-white" : "bg-white border border-slate-400 text-slate-600"
+                } disabled:opacity-50`}
+              >
+                IMTIHONDAN CHETLATISH
+              </button>
+              {sababUchun && (
+                <div className="flex gap-2 items-center bg-slate-50 border border-violet-200 rounded-lg p-2">
+                  <select
+                    className="input !py-1.5 !text-sm flex-1"
+                    value={tanlanganSabab}
+                    onChange={(e) => setTanlanganSabab(e.target.value)}
+                  >
+                    <option value="">Sababni tanlang…</option>
+                    {sabablar.map((s) => (
+                      <option key={s.id} value={s.id}>{s.matn}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    disabled={!tanlanganSabab || yuklanmoqda}
+                    onClick={sababniTasdiqlash}
+                    className="btn-primary !py-1.5 !text-sm shrink-0 disabled:opacity-50"
+                  >
+                    Tasdiqlash
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

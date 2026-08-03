@@ -65,7 +65,7 @@ export default function YangiTalabaForm({
     e.preventDefault();
     setXato("");
 
-    if (!filialId || (!expressToifa && !guruhRaqami.trim()) || !imtihonTuri || forma083 === "" || !toifa) {
+    if (!filialId || (!expressToifa && !guruhRaqami.trim()) || !imtihonTuri || !toifa) {
       setXato("Barcha maydonlarni to'ldiring");
       return;
     }
@@ -270,13 +270,14 @@ export default function YangiTalabaForm({
             required
           />
           <p className="text-xs text-slate-400 mt-1">
-            Faqat raqam kiriting. Bir xil raqamli guruhlar avtomatik bitta guruhga biriktiriladi.
+            Faqat raqam kiriting. Bir xil raqamli guruhlar — boshqa filiallardan bo'lsa ham —
+            avtomatik bitta guruhga biriktiriladi.
           </p>
         </div>
       )}
 
       <div>
-        <label className="label">083 forma</label>
+        <label className="label">083 forma (ixtiyoriy)</label>
         <div className="flex gap-3">
           {["tayyor", "tayyor_emas"].map((v) => (
             <label key={v} className={`flex-1 border rounded-xl px-4 py-2.5 text-center cursor-pointer text-sm font-medium ${

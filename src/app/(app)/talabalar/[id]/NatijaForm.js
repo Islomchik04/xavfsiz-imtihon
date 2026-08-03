@@ -141,6 +141,7 @@ function QaytaBiriktirishForma({ talabaId, standart, imtihonlar }) {
       setXato(error.message);
       return;
     }
+    router.push("/talabalar");
     router.refresh();
   }
 
