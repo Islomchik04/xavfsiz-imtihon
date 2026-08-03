@@ -41,10 +41,10 @@ export function sanaKorinishi(sanaStr) {
 
 // --- Talaba holati (urinishlar tarixidan kelib chiqib) ----------------------
 
-// "Yakunlangan lekin o'tmagan" hisoblanadigan natijalar — o'tmadi, kelmadi
-// va boshqa (sababli) — bularning barchasi qayta imtihonga biriktirilishi
-// kerakligini bildiradi.
-const MUVAFFAQIYATSIZ = ["otmadi", "kelmadi", "boshqa"];
+// "Yakunlangan lekin o'tmagan" hisoblanadigan natijalar — o'tmadi, kelmadi,
+// boshqa (sababli) va chetlatildi — bularning barchasi qayta imtihonga
+// biriktirilishi kerakligini bildiradi.
+const MUVAFFAQIYATSIZ = ["otmadi", "kelmadi", "boshqa", "chetlatildi"];
 
 // urinishlar: talaba_imtihonlar qatorlari ro'yxati (bitta talaba uchun),
 // har birida nazariy_kerak/amaliy_kerak/nazariy_natija/amaliy_natija/created_at bor
@@ -57,9 +57,10 @@ export function talabaHolati(urinishlar) {
   if (oxirgi.nazariy_kerak) qismlar.push(oxirgi.nazariy_natija);
   if (oxirgi.amaliy_kerak) qismlar.push(oxirgi.amaliy_natija);
   if (qismlar.some((q) => q === "kutilmoqda")) return "kutilmoqda";
-  // Ustuvorlik: otmadi > kelmadi > boshqa > otdi (aralash natija bo'lsa eng
-  // "og'ir" holat ko'rsatiladi)
+  // Ustuvorlik: otmadi > chetlatildi > kelmadi > boshqa > otdi (aralash
+  // natija bo'lsa eng "og'ir" holat ko'rsatiladi)
   if (qismlar.some((q) => q === "otmadi")) return "otmadi";
+  if (qismlar.some((q) => q === "chetlatildi")) return "chetlatildi";
   if (qismlar.some((q) => q === "kelmadi")) return "kelmadi";
   if (qismlar.some((q) => q === "boshqa")) return "boshqa";
   return "otdi";
@@ -176,8 +177,11 @@ export function kpiDaraja(otgan, otmagan) {
 }
 
 // urinishlar: bir oyga tegishli talaba_imtihonlar qatorlari, quyidagi
-// bog'langan ma'lumot bilan birga: imtihon.sana, talaba.nazariy_oqituvchi_id,
-// talaba.amaliy_oqituvchi_id, talaba.filial_id
+// bog'langan ma'lumot bilan birga: imtihon.sana,
+// urinish.nazariy_oqituvchi_id / urinish.amaliy_oqituvchi_id (talaba_imtihonlar
+// jadvalidagi SNAPSHOT ustunlar — shu urinish PAYTIDA biriktirilgan
+// o'qituvchi, talaba keyinchalik boshqa o'qituvchiga o'tkazilsa ham bu
+// o'zgarmaydi), talaba.filial_id, talaba.toifa
 // oqituvchilar: {id, ism_familya, turi} ro'yxati
 export function oqituvchilarKpiHisoblash(urinishlar, oqituvchilar) {
   const oqMap = new Map(oqituvchilar.map((o) => [o.id, o]));
@@ -214,13 +218,13 @@ export function oqituvchilarKpiHisoblash(urinishlar, oqituvchilar) {
     if (u.nazariy_kerak && (u.nazariy_natija === "otdi" || u.nazariy_natija === "otmadi")) {
       const otdimi = u.nazariy_natija === "otdi";
       if (!(otdimi && u.nazariyUrinishRaqami > 1)) {
-        qoshish(u.talabalar?.nazariy_oqituvchi_id, hafta, otdimi);
+        qoshish(u.nazariy_oqituvchi_id, hafta, otdimi);
       }
     }
     if (u.amaliy_kerak && (u.amaliy_natija === "otdi" || u.amaliy_natija === "otmadi")) {
       const otdimi = u.amaliy_natija === "otdi";
       if (!(otdimi && u.amaliyUrinishRaqami > 1)) {
-        qoshish(u.talabalar?.amaliy_oqituvchi_id, hafta, otdimi);
+        qoshish(u.amaliy_oqituvchi_id, hafta, otdimi);
       }
     }
   }

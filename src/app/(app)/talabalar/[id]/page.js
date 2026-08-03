@@ -41,11 +41,14 @@ export default async function TalabaDetailSahifa({ params }) {
     .eq("talaba_id", talaba.id)
     .order("created_at", { ascending: false });
 
+  // Superadmin va Hujjatchi guruh/o'qituvchini ISTALGAN PAYTDA (hujjat
+  // tayyor bo'lgandan keyin ham) o'zgartira oladi — Admin esa faqat hujjat
+  // hali tayyor bo'lmagan paytda, o'z filialida (talabalar_update_guard
+  // trigger orqali DB darajasida ham qat'iy nazorat qilinadi).
   const asosiyTahrirRuxsat =
-    !talaba.hujjat_tayyor &&
-    (profile.role === "superadmin" ||
-      profile.role === "hujjatchi" ||
-      (profile.role === "admin" && profile.filial_id === talaba.filial_id));
+    profile.role === "superadmin" ||
+    profile.role === "hujjatchi" ||
+    (profile.role === "admin" && !talaba.hujjat_tayyor && profile.filial_id === talaba.filial_id);
 
   const hujjatTahrirRuxsat =
     !talaba.hujjat_tayyor && ["hujjatchi", "superadmin"].includes(profile.role);

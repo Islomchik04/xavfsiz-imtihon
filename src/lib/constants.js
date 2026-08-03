@@ -26,6 +26,7 @@ export const NATIJA = {
   otmadi: "O'tmadi",
   kelmadi: "Kelmadi",
   boshqa: "Boshqa",
+  chetlatildi: "Chetlatildi",
 };
 
 export const NATIJA_RANG = {
@@ -34,11 +35,12 @@ export const NATIJA_RANG = {
   otmadi: "bg-rose-100 text-rose-700",
   kelmadi: "bg-amber-100 text-amber-700",
   boshqa: "bg-violet-100 text-violet-700",
+  chetlatildi: "bg-slate-700 text-white",
 };
 
 // Natijalar orasida qaysilari "yakunlangan" (kutilmoqda emas) hisoblanadi —
 // bularning barchasi qayta imtihonga biriktirish tugmasini chiqaradi.
-export const MUVAFFAQIYATSIZ_NATIJALAR = ["otmadi", "kelmadi", "boshqa"];
+export const MUVAFFAQIYATSIZ_NATIJALAR = ["otmadi", "kelmadi", "boshqa", "chetlatildi"];
 
 export const OQITUVCHI_TURI = {
   nazariy: "Nazariy o'qituvchi",
@@ -78,6 +80,7 @@ export const TALABA_HOLATI = {
   otmadi: "O'tolmadi — qayta imtihon kerak",
   kelmadi: "Kelmadi — qayta imtihon kerak",
   boshqa: "Boshqa sabab — qayta imtihon kerak",
+  chetlatildi: "Chetlatildi — qayta imtihon kerak",
 };
 
 // Imtihon sessiyasi hayotiy sikli holati
@@ -101,4 +104,5 @@ export const TALABA_HOLATI_RANG = {
   otmadi: "bg-rose-100 text-rose-700",
   kelmadi: "bg-amber-100 text-amber-700",
   boshqa: "bg-violet-100 text-violet-700",
+  chetlatildi: "bg-slate-700 text-white",
 };

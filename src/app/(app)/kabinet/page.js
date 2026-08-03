@@ -9,8 +9,9 @@ const TALABA_SELECT = `
 
 const URINISH_SELECT = `
   talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija, created_at,
+  nazariy_oqituvchi_id, amaliy_oqituvchi_id,
   imtihonlar(sana),
-  talabalar(nazariy_oqituvchi_id, amaliy_oqituvchi_id, toifa)
+  talabalar(toifa)
 `;
 
 // O'qituvchi kabineti — faqat 'oqituvchi' roli uchun. RLS talabalar va

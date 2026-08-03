@@ -92,6 +92,7 @@ export default async function TalabalarSahifa({ searchParams }) {
             <option value="otmadi">O'tolmadi (qayta imtihon kerak)</option>
             <option value="kelmadi">Kelmadi (qayta imtihon kerak)</option>
             <option value="boshqa">Boshqa sabab (qayta imtihon kerak)</option>
+            <option value="chetlatildi">Chetlatildi (qayta imtihon kerak)</option>
             <option value="bir_urinishda_otgan">Bitta urinishda o'tganlar</option>
             <option value="nazariydan_otgan">Nazariydan o'tganlar</option>
           </select>

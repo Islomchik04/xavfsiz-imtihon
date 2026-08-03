@@ -13,8 +13,9 @@ import { OQITUVCHI_TURI } from "@/lib/constants";
 
 const URINISH_SELECT = `
   talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija, created_at,
+  nazariy_oqituvchi_id, amaliy_oqituvchi_id,
   imtihonlar(sana),
-  talabalar(ism_familya, toifa, nazariy_oqituvchi_id, amaliy_oqituvchi_id, filiallar(nomi), guruhlar(nomi))
+  talabalar(ism_familya, toifa, filiallar(nomi), guruhlar(nomi))
 `;
 
 // Superadmin uchun: tanlangan oyning KPI/maosh hisobotini Excel (.xlsx)
@@ -179,10 +180,10 @@ export async function GET(so_rov) {
     }
 
     if (u.nazariy_kerak) {
-      qatorQoshish(talaba?.nazariy_oqituvchi_id, "nazariy", "nazariy_natija", u.nazariyUrinishRaqami);
+      qatorQoshish(u.nazariy_oqituvchi_id, "nazariy", "nazariy_natija", u.nazariyUrinishRaqami);
     }
     if (u.amaliy_kerak) {
-      qatorQoshish(talaba?.amaliy_oqituvchi_id, "amaliy", "amaliy_natija", u.amaliyUrinishRaqami);
+      qatorQoshish(u.amaliy_oqituvchi_id, "amaliy", "amaliy_natija", u.amaliyUrinishRaqami);
     }
   }
 

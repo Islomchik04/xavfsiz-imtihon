@@ -16,6 +16,7 @@ function qismlarNatijasi(u) {
   if (u.amaliy_kerak) qismlar.push(u.amaliy_natija);
   if (qismlar.some((q) => q === "kutilmoqda")) return "kutilmoqda";
   if (qismlar.some((q) => q === "otmadi")) return "otmadi";
+  if (qismlar.some((q) => q === "chetlatildi")) return "chetlatildi";
   if (qismlar.some((q) => q === "kelmadi")) return "kelmadi";
   if (qismlar.some((q) => q === "boshqa")) return "boshqa";
   return "otdi";
@@ -76,7 +77,11 @@ export function filialBoyichaStatistika(talabalar, urinishlar) {
 
 // Har bir urinishdagi kerakli har bir qism (nazariy/amaliy) alohida
 // o'qituvchiga bog'lanadi — bitta talaba ikkalasini ham topshirsa, ikkala
-// o'qituvchisiga alohida hisoblanadi.
+// o'qituvchisiga alohida hisoblanadi. MUHIM: o'qituvchi ID shu urinishning
+// o'zidagi SNAPSHOT ustunidan (u.nazariy_oqituvchi_id/u.amaliy_oqituvchi_id)
+// o'qiladi — talaba.nazariy/amaliy_oqituvchi_id (joriy biriktirilgan
+// o'qituvchi) dan EMAS — aks holda talaba boshqa o'qituvchiga o'tkazilganda
+// eski statistikasi ham noto'g'ri qayta taqsimlanib ketardi.
 export function oqituvchiBoyichaStatistika(urinishlar, turi) {
   const oqIdMaydon = turi === "nazariy" ? "nazariy_oqituvchi_id" : "amaliy_oqituvchi_id";
   const oqObjMaydon = turi === "nazariy" ? "nazariy_oqituvchilar" : "amaliy_oqituvchilar";
@@ -86,11 +91,11 @@ export function oqituvchiBoyichaStatistika(urinishlar, turi) {
   const guruh = new Map();
   for (const u of urinishlar) {
     if (!u[kerakMaydon]) continue;
-    const id = u.talabalar?.[oqIdMaydon];
+    const id = u[oqIdMaydon] ?? u.talabalar?.[oqIdMaydon];
     if (!id) continue;
     const ism = u.talabalar?.[oqObjMaydon]?.ism_familya || "Noma'lum";
     if (!guruh.has(id)) {
-      guruh.set(id, { id, ism, jami: 0, otdi: 0, otmadi: 0, kutilmoqda: 0, kelmadi: 0, boshqa: 0 });
+      guruh.set(id, { id, ism, jami: 0, otdi: 0, otmadi: 0, kutilmoqda: 0, kelmadi: 0, boshqa: 0, chetlatildi: 0 });
     }
     const yozuv = guruh.get(id);
     yozuv.jami += 1;
@@ -99,6 +104,7 @@ export function oqituvchiBoyichaStatistika(urinishlar, turi) {
     else if (natija === "otmadi") yozuv.otmadi += 1;
     else if (natija === "kelmadi") yozuv.kelmadi += 1;
     else if (natija === "boshqa") yozuv.boshqa += 1;
+    else if (natija === "chetlatildi") yozuv.chetlatildi += 1;
     else yozuv.kutilmoqda += 1;
   }
 

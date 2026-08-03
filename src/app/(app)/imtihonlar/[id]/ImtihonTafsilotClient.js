@@ -618,10 +618,22 @@ function AmaliygaOtkazishForma({ talabaId, imtihonId, amaliyOqituvchilar, onOtka
 
 function NatijaTugmalari({ sarlavha, oqituvchi, natija, sababId, sabablar, tahrirRuxsat, yuklanmoqda, onBelgilash }) {
   const yakunlangan = natija !== "kutilmoqda";
-  const [boshqaTanlanmoqda, setBoshqaTanlanmoqda] = useState(false);
+  // null | "boshqa" | "chetlatildi" — ikkalasi ham bir xil sabab-tanlash
+  // panelidan (umumiy "sabablar" ro'yxatidan) foydalanadi.
+  const [sababUchun, setSababUchun] = useState(null);
   const [tanlanganSabab, setTanlanganSabab] = useState("");
 
   const joriySabab = sababId ? sabablar.find((s) => s.id === sababId)?.matn : null;
+
+  function sababniOchish(turi) {
+    setSababUchun((v) => (v === turi ? null : turi));
+    setTanlanganSabab("");
+  }
+
+  function sababniTasdiqlash() {
+    onBelgilash(sababUchun, tanlanganSabab);
+    setSababUchun(null);
+  }
 
   return (
     <div className="bg-slate-50 rounded-xl p-3">
@@ -667,7 +679,7 @@ function NatijaTugmalari({ sarlavha, oqituvchi, natija, sababId, sabablar, tahri
             </button>
             <button
               disabled={yuklanmoqda || yakunlangan}
-              onClick={() => setBoshqaTanlanmoqda((v) => !v)}
+              onClick={() => sababniOchish("boshqa")}
               className={`!py-2.5 !text-sm btn ${
                 natija === "boshqa" ? "bg-violet-500 text-white" : "bg-white border border-violet-300 text-violet-700"
               } disabled:opacity-50`}
@@ -675,7 +687,16 @@ function NatijaTugmalari({ sarlavha, oqituvchi, natija, sababId, sabablar, tahri
               BOSHQA
             </button>
           </div>
-          {boshqaTanlanmoqda && !yakunlangan && (
+          <button
+            disabled={yuklanmoqda || yakunlangan}
+            onClick={() => sababniOchish("chetlatildi")}
+            className={`w-full !py-2.5 !text-sm btn ${
+              natija === "chetlatildi" ? "bg-slate-700 text-white" : "bg-white border border-slate-400 text-slate-600"
+            } disabled:opacity-50`}
+          >
+            IMTIHONDAN CHETLATISH
+          </button>
+          {sababUchun && !yakunlangan && (
             <div className="flex gap-2 items-center bg-white border border-violet-200 rounded-lg p-2">
               <select
                 className="input !py-1.5 !text-sm flex-1"
@@ -690,10 +711,7 @@ function NatijaTugmalari({ sarlavha, oqituvchi, natija, sababId, sabablar, tahri
               <button
                 type="button"
                 disabled={!tanlanganSabab || yuklanmoqda}
-                onClick={() => {
-                  onBelgilash("boshqa", tanlanganSabab);
-                  setBoshqaTanlanmoqda(false);
-                }}
+                onClick={sababniTasdiqlash}
                 className="btn-primary !py-1.5 !text-sm shrink-0 disabled:opacity-50"
               >
                 Tasdiqlash
