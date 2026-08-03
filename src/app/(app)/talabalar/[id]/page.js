@@ -90,6 +90,11 @@ export default async function TalabaDetailSahifa({ params }) {
         <div className="flex flex-wrap gap-2 mt-2">
           <Badge ton="blue">{IMTIHON_TURI[talaba.imtihon_turi]}</Badge>
           <Badge ton={talaba.forma_083 ? "emerald" : "amber"}>083 forma: {FORMA_083_LABEL[talaba.forma_083]}</Badge>
+          {talaba.qarzdorlik && (
+            <Badge ton="rose">
+              Qarzdorlik: {talaba.qarzdorlik_summasi != null ? `${Number(talaba.qarzdorlik_summasi).toLocaleString("uz-UZ")} so'm` : "bor"}
+            </Badge>
+          )}
           <span className={`badge ${TALABA_HOLATI_RANG[holat]}`}>{TALABA_HOLATI[holat]}</span>
         </div>
       </div>

@@ -128,7 +128,7 @@ export default function KabinetClient({ oqituvchi, talabalar, urinishlar }) {
           <p className="text-sm text-slate-400">Shu oyda natija chiqqan ma'lumot yo'q.</p>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
               <div className="bg-slate-50 rounded-xl p-3">
                 <div className="text-xl font-bold text-emerald-600">{somKorinishi(meningKpim.oy.mukofot)}</div>
                 <div className="text-xs text-slate-400 mt-1">Mukofot</div>
@@ -143,7 +143,8 @@ export default function KabinetClient({ oqituvchi, talabalar, urinishlar }) {
               </div>
             </div>
 
-            <table className="w-full text-xs">
+            <div className="overflow-x-auto -mx-1 px-1">
+            <table className="w-full text-xs min-w-[560px]">
               <thead>
                 <tr className="text-left text-slate-400 border-b border-slate-100">
                   <th className="p-2 font-medium">Hafta</th>
@@ -173,6 +174,7 @@ export default function KabinetClient({ oqituvchi, talabalar, urinishlar }) {
                 ))}
               </tbody>
             </table>
+            </div>
           </>
         )}
       </div>

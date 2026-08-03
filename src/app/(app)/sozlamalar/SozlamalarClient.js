@@ -12,6 +12,7 @@ const TABLAR = [
   { key: "guruhlar", label: "Guruhlar" },
   { key: "oqituvchilar", label: "O'qituvchilar" },
   { key: "sabablar", label: "Sabablar" },
+  { key: "xavfli", label: "Xavfli zona" },
 ];
 
 export default function SozlamalarClient({
@@ -51,6 +52,7 @@ export default function SozlamalarClient({
       {tab === "guruhlar" && <GuruhlarBolimi guruhlar={boshlangichGuruhlar} />}
       {tab === "oqituvchilar" && <OqituvchilarBolimi oqituvchilar={boshlangichOqituvchilar} filiallar={boshlangichFiliallar} />}
       {tab === "sabablar" && <SabablarBolimi sabablar={boshlangichSabablar} />}
+      {tab === "xavfli" && <XavfliZonaBolimi />}
     </div>
   );
 }
@@ -193,7 +195,7 @@ function FoydalanuvchilarBolimi({ foydalanuvchilar, filiallar }) {
         </button>
       </form>
 
-      <div className="card overflow-x-auto">
+      <div className="card overflow-x-auto hidden md:block">
         <h2 className="font-semibold text-slate-800 mb-4">Mavjud foydalanuvchilar</h2>
         <table className="w-full text-sm">
           <thead>
@@ -223,6 +225,52 @@ function FoydalanuvchilarBolimi({ foydalanuvchilar, filiallar }) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="card md:hidden">
+        <h2 className="font-semibold text-slate-800 mb-4">Mavjud foydalanuvchilar</h2>
+        <div className="space-y-3 xi-stagger">
+          {royxat.map((f) => (
+            <div key={f.id} className="border border-slate-100 dark:border-slate-800 rounded-xl p-3.5">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="font-semibold text-slate-700">{f.ism_familya}</div>
+                  <div className="text-xs text-slate-400 mt-0.5">+998 {telefonKorinishi(f.telefon)}</div>
+                </div>
+                <span className="text-xs font-medium text-slate-500">{ROLLAR[f.role]}</span>
+              </div>
+              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-50 dark:border-slate-800">
+                <button onClick={() => setTahrirId(tahrirId === f.id ? null : f.id)} className="text-xs font-medium text-brand-600">
+                  Tahrirlash
+                </button>
+                <button onClick={() => ochirish(f.id, f.ism_familya)} className="text-xs font-medium text-rose-600">
+                  O'chirish
+                </button>
+                <button
+                  onClick={() => faollikniOzgartirish(f.id, f.faol)}
+                  className={`ml-auto text-xs font-medium px-2.5 py-1 rounded-full ${
+                    f.faol ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  {f.faol ? "Faol" : "Faolsiz"}
+                </button>
+              </div>
+              {tahrirId === f.id && (
+                <div className="mt-3">
+                  <FoydalanuvchiTahrirForma
+                    foydalanuvchi={f}
+                    filiallar={filiallar}
+                    onBekor={() => setTahrirId(null)}
+                    onSaqlandi={() => {
+                      setTahrirId(null);
+                      router.refresh();
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -593,7 +641,7 @@ function OqituvchilarBolimi({ oqituvchilar, filiallar }) {
         </button>
       </form>
 
-      <div className="card overflow-x-auto">
+      <div className="card overflow-x-auto hidden md:block">
         <h2 className="font-semibold text-slate-800 mb-4">O'qituvchilar</h2>
         <table className="w-full text-sm">
           <thead>
@@ -630,6 +678,83 @@ function OqituvchilarBolimi({ oqituvchilar, filiallar }) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="card md:hidden">
+        <h2 className="font-semibold text-slate-800 mb-4">O'qituvchilar</h2>
+        <div className="space-y-3 xi-stagger">
+          {oqituvchilar.map((o) => (
+            <div key={o.id} className="border border-slate-100 dark:border-slate-800 rounded-xl p-3.5">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="font-semibold text-slate-700">{o.ism_familya}</div>
+                  <div className="text-xs text-slate-400 mt-0.5">
+                    {OQITUVCHI_TURI[o.turi]} · {(o.filial_idlar || []).map(filialNomi).join(", ") || "—"}
+                  </div>
+                </div>
+                {o.login_profil ? (
+                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-brand-100 text-brand-700 whitespace-nowrap">
+                    +998 {telefonKorinishi(o.login_profil.telefon)}
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setLoginId(loginId === o.id ? null : o.id);
+                      setTahrirId(null);
+                    }}
+                    className="text-xs font-medium px-2 py-1 rounded-full bg-slate-100 text-slate-500 whitespace-nowrap"
+                  >
+                    Login berish
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-50 dark:border-slate-800">
+                <button
+                  onClick={() => {
+                    setTahrirId(tahrirId === o.id ? null : o.id);
+                    setLoginId(null);
+                  }}
+                  className="text-xs font-medium text-brand-600"
+                >
+                  Tahrirlash
+                </button>
+                <button
+                  onClick={() => faollikniOzgartirish(o.id, o.faol)}
+                  className={`ml-auto text-xs font-medium px-2.5 py-1 rounded-full ${
+                    o.faol ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  {o.faol ? "Faol" : "Faolsiz"}
+                </button>
+              </div>
+              {tahrirId === o.id && (
+                <div className="mt-3">
+                  <OqituvchiTahrirForma
+                    oqituvchi={o}
+                    filiallar={filiallar}
+                    onBekor={() => setTahrirId(null)}
+                    onSaqlandi={() => {
+                      setTahrirId(null);
+                      router.refresh();
+                    }}
+                  />
+                </div>
+              )}
+              {loginId === o.id && (
+                <div className="mt-3">
+                  <OqituvchiLoginForma
+                    oqituvchi={o}
+                    onBekor={() => setLoginId(null)}
+                    onBerildi={() => {
+                      setLoginId(null);
+                      router.refresh();
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -1005,6 +1130,138 @@ function SabablarBolimi({ sabablar }) {
           </ul>
         )}
       </div>
+    </div>
+  );
+}
+
+// ------------------------------- XAVFLI ZONA -------------------------------
+// Superadmin uchun statistikani 0 ga tushirish (test ma'lumotlarini
+// tozalash). Filiallar, o'qituvchilar va foydalanuvchi (login) ma'lumotlariga
+// HECH QACHON tegilmaydi — faqat talabalar/imtihonlar/natijalar/guruhlar.
+
+const TOZALASH_DARAJALARI = [
+  {
+    key: "natijalar",
+    sarlavha: "Faqat imtihon natijalari",
+    tavsif: "Barcha urinishlar/natijalar o'chadi. Talabalar ro'yxati saqlanadi (ularni qayta imtihonga biriktirish kerak bo'ladi).",
+  },
+  {
+    key: "talaba_imtihon",
+    sarlavha: "Talabalar + imtihonlar + natijalar",
+    tavsif: "Talabalar, imtihon sessiyalari va natijalar to'liq o'chadi. Filiallar, o'qituvchilar va foydalanuvchi loginlari saqlanadi.",
+  },
+  {
+    key: "toliq",
+    sarlavha: "To'liq test reset",
+    tavsif: "Yuqoridagilar + avtomatik yaratilgan guruhlar ham o'chadi. Faqat filiallar, o'qituvchilar va login ma'lumotlari qoladi.",
+  },
+];
+
+const TASDIQ_MATNI = "TOZALASH";
+
+function XavfliZonaBolimi() {
+  const router = useRouter();
+  const [daraja, setDaraja] = useState("natijalar");
+  const [tasdiq, setTasdiq] = useState("");
+  const [xato, setXato] = useState("");
+  const [muvaffaqiyat, setMuvaffaqiyat] = useState("");
+  const [yuklanmoqda, setYuklanmoqda] = useState(false);
+
+  const tanlangan = TOZALASH_DARAJALARI.find((d) => d.key === daraja);
+  const tasdiqTogri = tasdiq === TASDIQ_MATNI;
+
+  async function tozalash() {
+    setXato("");
+    setMuvaffaqiyat("");
+    if (!tasdiqTogri) return;
+    if (
+      !confirm(
+        `Rostdan ham "${tanlangan.sarlavha}" bo'yicha tozlamoqchimisiz? Bu amalni ORTGA QAYTARIB BO'LMAYDI.`
+      )
+    ) {
+      return;
+    }
+    setYuklanmoqda(true);
+    const javob = await fetch("/api/tozalash", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ daraja, tasdiq }),
+    });
+    const natija = await javob.json();
+    setYuklanmoqda(false);
+    if (!javob.ok) {
+      setXato(natija.xato || "Xatolik yuz berdi");
+      return;
+    }
+    setTasdiq("");
+    setMuvaffaqiyat("Tozalandi — statistika 0 dan boshlanadi.");
+    router.refresh();
+  }
+
+  return (
+    <div className="card max-w-2xl border-2 border-rose-200 dark:border-rose-900/50">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-lg">⚠️</span>
+        <h2 className="font-semibold text-rose-700">Xavfli zona — ma'lumotlarni tozalash</h2>
+      </div>
+      <p className="text-sm text-slate-500 mb-4">
+        Statistikani 0 ga tushirish uchun ishlatiladi (masalan test ma'lumotlaridan keyin). Filiallar,
+        o'qituvchilar va foydalanuvchi loginlariga HECH QACHON tegilmaydi. Bu amalni ortga qaytarib
+        bo'lmaydi — ehtiyot bo'ling.
+      </p>
+
+      <div className="space-y-2 mb-4">
+        {TOZALASH_DARAJALARI.map((d) => (
+          <label
+            key={d.key}
+            className={`flex gap-3 p-3 rounded-xl border cursor-pointer transition ${
+              daraja === d.key
+                ? "border-rose-400 bg-rose-50 dark:bg-rose-950/20"
+                : "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40"
+            }`}
+          >
+            <input
+              type="radio"
+              name="tozalash-darajasi"
+              className="mt-1"
+              checked={daraja === d.key}
+              onChange={() => {
+                setDaraja(d.key);
+                setMuvaffaqiyat("");
+              }}
+            />
+            <span>
+              <span className="block text-sm font-semibold text-slate-700">{d.sarlavha}</span>
+              <span className="block text-xs text-slate-500 mt-0.5">{d.tavsif}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+
+      <div className="mb-4">
+        <label className="label">
+          Tasdiqlash uchun <code className="text-rose-600 font-mono">{TASDIQ_MATNI}</code> deb yozing
+        </label>
+        <input
+          className="input"
+          value={tasdiq}
+          onChange={(e) => setTasdiq(e.target.value)}
+          placeholder={TASDIQ_MATNI}
+        />
+      </div>
+
+      {xato && <div className="text-sm text-rose-600 bg-rose-50 rounded-lg px-3 py-2 mb-3">{xato}</div>}
+      {muvaffaqiyat && (
+        <div className="text-sm text-emerald-600 bg-emerald-50 rounded-lg px-3 py-2 mb-3">{muvaffaqiyat}</div>
+      )}
+
+      <button
+        onClick={tozalash}
+        disabled={!tasdiqTogri || yuklanmoqda}
+        className="btn-danger w-full"
+      >
+        {yuklanmoqda ? "Tozalanmoqda…" : `Tozalash: ${tanlangan.sarlavha}`}
+      </button>
     </div>
   );
 }

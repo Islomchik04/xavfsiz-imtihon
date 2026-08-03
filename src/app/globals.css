@@ -20,27 +20,39 @@ body {
 .card {
   @apply bg-white rounded-2xl shadow-sm border border-slate-200 p-5;
   @apply dark:bg-slate-900 dark:border-slate-800;
+  animation: xi-fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+@media (hover: hover) {
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px -12px rgb(15 23 42 / 0.16);
+  }
+  .dark .card:hover {
+    box-shadow: 0 12px 28px -12px rgb(0 0 0 / 0.55);
+  }
 }
 
 .btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-medium transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-medium transition-all duration-200 active:scale-[0.96] disabled:opacity-50 disabled:pointer-events-none;
 }
 
 .btn-primary {
-  @apply btn bg-brand-600 text-white hover:bg-brand-700;
+  @apply btn bg-brand-600 text-white hover:bg-brand-700 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-600/25;
 }
 
 .btn-secondary {
-  @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200;
+  @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200 hover:-translate-y-0.5;
   @apply dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700;
 }
 
 .btn-danger {
-  @apply btn bg-rose-600 text-white hover:bg-rose-700;
+  @apply btn bg-rose-600 text-white hover:bg-rose-700 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-rose-600/25;
 }
 
 .btn-success {
-  @apply btn bg-emerald-600 text-white hover:bg-emerald-700;
+  @apply btn bg-emerald-600 text-white hover:bg-emerald-700 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-600/25;
 }
 
 .input {
@@ -55,7 +67,33 @@ body {
 
 .badge {
   @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold;
+  animation: xi-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* Ingichka, zamonaviy scrollbar (webkit) */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+.dark ::-webkit-scrollbar-thumb { background: #334155; }
+
+/* Mobil pastki tab-bar tagida qolib ketmasligi uchun asosiy kontentga
+   qo'shimcha bo'shliq (iOS "home indicator" xavfsiz zonasini ham hisobga
+   oladi). */
+.xi-mobil-pastki-bosh {
+  padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Fon uchun sokin, sekin harakatlanuvchi rangli "blob" dekoratsiyasi —
+   sahifalarga chuqurlik his qildiradi, GPU'da arzon (faqat transform). */
+.xi-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(60px);
+  opacity: 0.35;
+  pointer-events: none;
+  animation: xi-blob 18s ease-in-out infinite;
+}
+.dark .xi-blob { opacity: 0.18; }
 
 /* ---------------------------------------------------------------------------
    Tungi rejim uchun umumiy qayta ranglash: butun saytda har bir sahifada
@@ -82,3 +120,68 @@ body {
 .dark .border-slate-100 { border-color: #1e293b; }
 .dark .border-slate-200 { border-color: #334155; }
 .dark .divide-slate-50 > :not([hidden]) ~ :not([hidden]) { border-color: #1e293b; }
+
+/* ---------------------------------------------------------------------------
+   Animatsiya asoslari — butun sayt bo'ylab qo'llaniladigan keyframe'lar va
+   avtomatik stagger effektlari. Har bir sahifada qo'lda framer-motion
+   ulashning o'rniga, eng ko'p ishlatiladigan elementlarga (kartochka,
+   jadval qatori, badge) global CSS orqali "hayot" beriladi.
+----------------------------------------------------------------------------- */
+
+@keyframes xi-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes xi-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes xi-pop {
+  0% { opacity: 0; transform: scale(0.85); }
+  70% { transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes xi-blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(3%, -4%) scale(1.08); }
+  66% { transform: translate(-3%, 3%) scale(0.95); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Jadval qatorlari va kartochka ro'yxatlari yuklanganda ketma-ket (stagger)
+   paydo bo'ladi. .xi-stagger klassi ro'yxat konteyneriga qo'yiladi. */
+tbody tr,
+.xi-stagger > * {
+  animation: xi-fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+tbody tr:nth-child(n+16),
+.xi-stagger > *:nth-child(n+16) {
+  animation-delay: 0ms !important;
+}
+
+tbody tr:nth-child(1), .xi-stagger > *:nth-child(1) { animation-delay: 0ms; }
+tbody tr:nth-child(2), .xi-stagger > *:nth-child(2) { animation-delay: 35ms; }
+tbody tr:nth-child(3), .xi-stagger > *:nth-child(3) { animation-delay: 70ms; }
+tbody tr:nth-child(4), .xi-stagger > *:nth-child(4) { animation-delay: 105ms; }
+tbody tr:nth-child(5), .xi-stagger > *:nth-child(5) { animation-delay: 140ms; }
+tbody tr:nth-child(6), .xi-stagger > *:nth-child(6) { animation-delay: 175ms; }
+tbody tr:nth-child(7), .xi-stagger > *:nth-child(7) { animation-delay: 210ms; }
+tbody tr:nth-child(8), .xi-stagger > *:nth-child(8) { animation-delay: 245ms; }
+tbody tr:nth-child(9), .xi-stagger > *:nth-child(9) { animation-delay: 280ms; }
+tbody tr:nth-child(10), .xi-stagger > *:nth-child(10) { animation-delay: 315ms; }
+tbody tr:nth-child(11), .xi-stagger > *:nth-child(11) { animation-delay: 350ms; }
+tbody tr:nth-child(12), .xi-stagger > *:nth-child(12) { animation-delay: 385ms; }
+tbody tr:nth-child(13), .xi-stagger > *:nth-child(13) { animation-delay: 420ms; }
+tbody tr:nth-child(14), .xi-stagger > *:nth-child(14) { animation-delay: 455ms; }
+tbody tr:nth-child(15), .xi-stagger > *:nth-child(15) { animation-delay: 490ms; }
+

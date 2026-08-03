@@ -133,24 +133,53 @@ export default function ImtihonlarClient({ foydalanuvchiId, rol, imtihonlar, uri
           {imtihonlar.length === 0 ? (
             <p className="text-sm text-slate-400">Hozircha imtihon yaratilmagan.</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-slate-400 border-b border-slate-100">
-                  <th className="pb-2 font-medium">Sana</th>
-                  <th className="pb-2 font-medium">Izoh</th>
-                  <th className="pb-2 font-medium">Holati</th>
-                  <th className="pb-2 font-medium text-right">Talaba</th>
-                  <th className="pb-2 font-medium text-right">O'tdi</th>
-                  <th className="pb-2 font-medium text-right">O'tmadi</th>
-                  {(yaratishRuxsat || ochirishRuxsat) && <th className="pb-2 font-medium"></th>}
-                </tr>
-              </thead>
-              <tbody>
+            <>
+              {/* Kompyuter/planshet: jadval */}
+              <table className="w-full text-sm hidden md:table">
+                <thead>
+                  <tr className="text-left text-slate-400 border-b border-slate-100">
+                    <th className="pb-2 font-medium">Sana</th>
+                    <th className="pb-2 font-medium">Izoh</th>
+                    <th className="pb-2 font-medium">Holati</th>
+                    <th className="pb-2 font-medium text-right">Talaba</th>
+                    <th className="pb-2 font-medium text-right">O'tdi</th>
+                    <th className="pb-2 font-medium text-right">O'tmadi</th>
+                    {(yaratishRuxsat || ochirishRuxsat) && <th className="pb-2 font-medium"></th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {imtihonlar.map((i) => {
+                    const s = statistikaMap.get(i.id) || { jami: 0, otgan: 0, otmagan: 0 };
+                    const holat = holatAniqlash(i.id);
+                    return (
+                      <ImtihonQatori
+                        key={i.id}
+                        imtihon={i}
+                        stat={s}
+                        holat={holat}
+                        yaratishRuxsat={yaratishRuxsat}
+                        ochirishRuxsat={ochirishRuxsat}
+                        tahrirlanmoqda={tahrirId === i.id}
+                        onTahrirBoshlash={() => setTahrirId(i.id)}
+                        onTahrirYopish={() => setTahrirId(null)}
+                        onOchirish={() => ochirish(i.id)}
+                        onYangilandi={() => {
+                          setTahrirId(null);
+                          router.refresh();
+                        }}
+                      />
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {/* Telefon: kartochkalar */}
+              <div className="md:hidden space-y-3 xi-stagger">
                 {imtihonlar.map((i) => {
                   const s = statistikaMap.get(i.id) || { jami: 0, otgan: 0, otmagan: 0 };
                   const holat = holatAniqlash(i.id);
                   return (
-                    <ImtihonQatori
+                    <ImtihonKartochkaMobil
                       key={i.id}
                       imtihon={i}
                       stat={s}
@@ -158,7 +187,7 @@ export default function ImtihonlarClient({ foydalanuvchiId, rol, imtihonlar, uri
                       yaratishRuxsat={yaratishRuxsat}
                       ochirishRuxsat={ochirishRuxsat}
                       tahrirlanmoqda={tahrirId === i.id}
-                      onTahrirBoshlash={() => setTahrirId(i.id)}
+                      onTahrirBoshlash={() => setTahrirId(tahrirId === i.id ? null : i.id)}
                       onTahrirYopish={() => setTahrirId(null)}
                       onOchirish={() => ochirish(i.id)}
                       onYangilandi={() => {
@@ -168,11 +197,60 @@ export default function ImtihonlarClient({ foydalanuvchiId, rol, imtihonlar, uri
                     />
                   );
                 })}
-              </tbody>
-            </table>
+              </div>
+            </>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ImtihonKartochkaMobil({
+  imtihon: i,
+  stat: s,
+  holat,
+  yaratishRuxsat,
+  ochirishRuxsat,
+  tahrirlanmoqda,
+  onTahrirBoshlash,
+  onTahrirYopish,
+  onOchirish,
+  onYangilandi,
+}) {
+  return (
+    <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3.5">
+      <div className="flex items-start justify-between gap-2">
+        <Link href={`/imtihonlar/${i.id}`} className="font-semibold text-brand-700">
+          {sanaKorinishi(i.sana)}
+        </Link>
+        <span className={`badge ${HOLAT_RANG[holat]}`}>{HOLAT_LABEL[holat]}</span>
+      </div>
+      {i.izoh && <div className="text-xs text-slate-400 mt-1">{i.izoh}</div>}
+      <div className="flex gap-4 text-xs mt-3">
+        <span className="text-slate-500">Talaba: <strong className="text-slate-700">{s.jami}</strong></span>
+        <span className="text-emerald-600">O'tdi: <strong>{s.otgan}</strong></span>
+        <span className="text-rose-600">O'tmadi: <strong>{s.otmagan}</strong></span>
+      </div>
+      {(yaratishRuxsat || ochirishRuxsat) && (
+        <div className="flex gap-3 mt-3 pt-3 border-t border-slate-50 dark:border-slate-800">
+          {yaratishRuxsat && (
+            <button onClick={onTahrirBoshlash} className="text-xs font-medium text-brand-600">
+              Tahrirlash
+            </button>
+          )}
+          {ochirishRuxsat && (
+            <button onClick={onOchirish} className="text-xs font-medium text-rose-600">
+              O'chirish
+            </button>
+          )}
+        </div>
+      )}
+      {tahrirlanmoqda && (
+        <div className="mt-3">
+          <ImtihonTahrirForma imtihon={i} onBekor={onTahrirYopish} onSaqlandi={onYangilandi} />
+        </div>
+      )}
     </div>
   );
 }

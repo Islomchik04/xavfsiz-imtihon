@@ -109,7 +109,7 @@ export default function HisobotlarClient({ urinishlar, boshlangichImtihonId }) {
 function BatafsilPanel({ yozuv }) {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="card !py-4">
           <div className="text-2xl font-bold text-slate-800">{yozuv.jami}</div>
           <div className="text-xs text-slate-400 mt-1">Jami natija</div>

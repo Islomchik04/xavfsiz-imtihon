@@ -59,7 +59,7 @@ export default function KpiClient({ urinishlar, oqituvchilar }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="card !py-4">
           <div className="text-2xl font-bold text-emerald-600">{somKorinishi(jamiMukofot)}</div>
           <div className="text-xs text-slate-400 mt-1">Jami mukofot</div>
@@ -77,7 +77,8 @@ export default function KpiClient({ urinishlar, oqituvchilar }) {
       {kpiRoyxat.length === 0 ? (
         <div className="card text-slate-400 text-sm">Shu oyda natija chiqqan ma'lumot yo'q.</div>
       ) : (
-        <div className="card !p-0 overflow-hidden">
+        <div className="card !p-0 overflow-hidden hidden md:block">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-slate-400 border-b border-slate-100 bg-slate-50">
@@ -153,6 +154,52 @@ export default function KpiClient({ urinishlar, oqituvchilar }) {
               ))}
             </tbody>
           </table>
+          </div>
+        </div>
+      )}
+
+      {/* Telefon: har o'qituvchi uchun akkordeon kartochka */}
+      {kpiRoyxat.length > 0 && (
+        <div className="md:hidden space-y-3 xi-stagger">
+          {kpiRoyxat.map((r) => (
+            <div key={r.oqituvchi.id} className="card">
+              <button
+                className="w-full flex items-center justify-between gap-2 text-left"
+                onClick={() => setOchiqId(ochiqId === r.oqituvchi.id ? null : r.oqituvchi.id)}
+              >
+                <div>
+                  <div className="font-semibold text-slate-700">{r.oqituvchi.ism_familya}</div>
+                  <div className="text-xs text-slate-400">{OQITUVCHI_TURI[r.oqituvchi.turi]}</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-slate-800">{somKorinishi(r.oy.sof)}</div>
+                  <div className="text-xs text-slate-400">
+                    <span className="text-emerald-600">{r.oy.otgan} o'tgan</span> ·{" "}
+                    <span className="text-rose-500">{r.oy.otmagan} o'tmagan</span>
+                  </div>
+                </div>
+              </button>
+              {ochiqId === r.oqituvchi.id && (
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                  {r.haftalar.map((h) => (
+                    <div key={h.hafta} className="bg-slate-50 dark:bg-slate-800/60 rounded-lg p-2.5 text-xs">
+                      <div className="font-medium text-slate-600 mb-1">
+                        {sanaKorinishi(h.hafta)} – {sanaKorinishi(h.haftaOxiri)}
+                      </div>
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-slate-500">
+                        <span className="text-emerald-600">{h.otgan} o'tgan</span>
+                        <span className="text-rose-500">{h.otmagan} o'tmagan</span>
+                        <span>{Math.round(h.foiz * 100)}%</span>
+                        <span className="text-emerald-600">+{somKorinishi(h.mukofot)}</span>
+                        <span className="text-rose-500">-{somKorinishi(h.jarima)}</span>
+                        <span className="font-semibold text-slate-700">= {somKorinishi(h.sof)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 

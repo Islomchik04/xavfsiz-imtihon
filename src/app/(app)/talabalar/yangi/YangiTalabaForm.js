@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { IMTIHON_TURI, FORMA_083_LABEL } from "@/lib/constants";
+import { IMTIHON_TURI, FORMA_083_LABEL, TOIFALAR } from "@/lib/constants";
 import { guruhIdTop } from "@/lib/guruh";
 
 // markaziyRol: hujjatchi va superadmin filialni o'zi tanlaydi (istalgan
@@ -23,6 +23,13 @@ export default function YangiTalabaForm({
     tahrirlanayotgan?.filial_id || (markaziyRol ? "" : profile.filial_id)
   );
   const [ismFamilya, setIsmFamilya] = useState(tahrirlanayotgan?.ism_familya || "");
+  const [toifa, setToifa] = useState(tahrirlanayotgan?.toifa || "");
+  const [qarzdorlik, setQarzdorlik] = useState(
+    tahrirlanayotgan ? (tahrirlanayotgan.qarzdorlik ? "bor" : "yoq") : "yoq"
+  );
+  const [qarzdorlikSummasi, setQarzdorlikSummasi] = useState(
+    tahrirlanayotgan?.qarzdorlik_summasi != null ? String(tahrirlanayotgan.qarzdorlik_summasi) : ""
+  );
   const [guruhRaqami, setGuruhRaqami] = useState(tahrirlanayotgan?.guruhlar?.nomi || "");
   const [forma083, setForma083] = useState(
     tahrirlanayotgan ? (tahrirlanayotgan.forma_083 ? "tayyor" : "tayyor_emas") : ""
@@ -59,7 +66,7 @@ export default function YangiTalabaForm({
     e.preventDefault();
     setXato("");
 
-    if (!filialId || !guruhRaqami.trim() || !imtihonTuri || forma083 === "") {
+    if (!filialId || !guruhRaqami.trim() || !imtihonTuri || forma083 === "" || !toifa) {
       setXato("Barcha maydonlarni to'ldiring");
       return;
     }
@@ -73,6 +80,11 @@ export default function YangiTalabaForm({
     }
     if (amaliyKerak && !amaliyOqituvchiId) {
       setXato("Amaliy o'qituvchini tanlang");
+      return;
+    }
+    const qarzdorlikSoni = Number(qarzdorlikSummasi.replace(",", "."));
+    if (qarzdorlik === "bor" && (!qarzdorlikSummasi.trim() || !(qarzdorlikSoni > 0))) {
+      setXato("Qarzdorlik summasini kiriting (musbat son)");
       return;
     }
 
@@ -90,6 +102,9 @@ export default function YangiTalabaForm({
 
     const maydonlar = {
       ism_familya: ismFamilya.trim(),
+      toifa,
+      qarzdorlik: qarzdorlik === "bor",
+      qarzdorlik_summasi: qarzdorlik === "bor" ? qarzdorlikSoni : null,
       filial_id: filialId,
       guruh_id: guruhId,
       forma_083: forma083 === "tayyor",
@@ -157,6 +172,58 @@ export default function YangiTalabaForm({
           placeholder="Masalan: Aliyev Vali Aliyevich"
           required
         />
+      </div>
+
+      <div>
+        <label className="label">Toifa</label>
+        <select className="input" value={toifa} onChange={(e) => setToifa(e.target.value)} required>
+          <option value="">Tanlang</option>
+          {Object.entries(TOIFALAR).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="label">Qarzdorlik</label>
+        <div className="flex gap-3">
+          {["yoq", "bor"].map((v) => (
+            <label
+              key={v}
+              className={`flex-1 border rounded-xl px-4 py-2.5 text-center cursor-pointer text-sm font-medium ${
+                qarzdorlik === v
+                  ? v === "bor"
+                    ? "border-rose-500 bg-rose-50 text-rose-700"
+                    : "border-emerald-500 bg-emerald-50 text-emerald-700"
+                  : "border-slate-300 text-slate-600"
+              }`}
+            >
+              <input
+                type="radio"
+                name="qarzdorlik"
+                value={v}
+                className="hidden"
+                checked={qarzdorlik === v}
+                onChange={(e) => setQarzdorlik(e.target.value)}
+              />
+              {v === "bor" ? "Qarzdorligi bor" : "Qarzdorligi yo'q"}
+            </label>
+          ))}
+        </div>
+        {qarzdorlik === "bor" && (
+          <div className="mt-3">
+            <label className="label">Qarzdorlik summasi (so'm)</label>
+            <input
+              className="input"
+              type="text"
+              inputMode="decimal"
+              value={qarzdorlikSummasi}
+              onChange={(e) => setQarzdorlikSummasi(e.target.value.replace(/[^\d.,]/g, ""))}
+              placeholder="Masalan: 500000"
+              required
+            />
+          </div>
+        )}
       </div>
 
       <div>

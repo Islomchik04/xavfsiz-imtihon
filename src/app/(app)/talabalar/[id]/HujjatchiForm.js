@@ -29,12 +29,32 @@ export default function HujjatchiForm({ talaba, imtihonlar }) {
     );
   }
 
+  if (talaba.qarzdorlik) {
+    return (
+      <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 space-y-1">
+        <p className="font-semibold">⚠️ Bu talabada qarzdorlik bor — imtihonchilar safiga qo'shib bo'lmaydi</p>
+        <p>
+          Qarzdorlik summasi:{" "}
+          <span className="font-semibold">
+            {talaba.qarzdorlik_summasi != null
+              ? `${Number(talaba.qarzdorlik_summasi).toLocaleString("uz-UZ")} so'm`
+              : "—"}
+          </span>
+        </p>
+        <p className="text-rose-600">
+          Talaba imtihonchilar safiga qo'shilishi uchun avval qarzdorlikni yopib, "Asosiy ma'lumotlar"
+          bo'limidan qarzdorlik holatini "Qarzdorligi yo'q" ga o'zgartiring.
+        </p>
+      </div>
+    );
+  }
+
   async function yuborish(e) {
     e.preventDefault();
     setXato("");
 
-    if (!tasdiqnoma || !imtihonVaraqasi || !imtihonId) {
-      setXato("Imtihonga qo'shish uchun tasdiqnoma, imtihon varaqasi va imtihon tanlanishi shart");
+    if (!tasdiqnoma || !imtihonVaraqasi || !hujjatForma083 || !imtihonId) {
+      setXato("Imtihonga qo'shish uchun tasdiqnoma, imtihon varaqasi, 083 forma va imtihon tanlanishi shart");
       return;
     }
 

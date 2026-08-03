@@ -149,30 +149,45 @@ export default function DashboardClient({ profile, talabalar, urinishlar, barcha
       )}
 
       {barchaFiliallarniKorish && filiallar.length > 0 && (
-        <div className="card overflow-x-auto">
+        <div className="card">
           <h2 className="font-semibold text-slate-800 mb-4">Filiallar bo'yicha</h2>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-slate-400 border-b border-slate-100">
-                <th className="pb-2 font-medium">Filial</th>
-                <th className="pb-2 font-medium text-right">Jami</th>
-                <th className="pb-2 font-medium text-right">Hujjat tayyor</th>
-                <th className="pb-2 font-medium text-right">O'tdi</th>
-                <th className="pb-2 font-medium text-right">O'tmadi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filiallar.map((f) => (
-                <tr key={f.nomi} className="border-b border-slate-50 last:border-0">
-                  <td className="py-2.5 font-medium text-slate-700">{f.nomi}</td>
-                  <td className="py-2.5 text-right">{f.jami}</td>
-                  <td className="py-2.5 text-right">{f.hujjatTayyor}</td>
-                  <td className="py-2.5 text-right text-emerald-600 font-medium">{f.otdi}</td>
-                  <td className="py-2.5 text-right text-rose-600 font-medium">{f.otmadi}</td>
+          <div className="overflow-x-auto hidden md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-slate-400 border-b border-slate-100">
+                  <th className="pb-2 font-medium">Filial</th>
+                  <th className="pb-2 font-medium text-right">Jami</th>
+                  <th className="pb-2 font-medium text-right">Hujjat tayyor</th>
+                  <th className="pb-2 font-medium text-right">O'tdi</th>
+                  <th className="pb-2 font-medium text-right">O'tmadi</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filiallar.map((f) => (
+                  <tr key={f.nomi} className="border-b border-slate-50 last:border-0">
+                    <td className="py-2.5 font-medium text-slate-700">{f.nomi}</td>
+                    <td className="py-2.5 text-right">{f.jami}</td>
+                    <td className="py-2.5 text-right">{f.hujjatTayyor}</td>
+                    <td className="py-2.5 text-right text-emerald-600 font-medium">{f.otdi}</td>
+                    <td className="py-2.5 text-right text-rose-600 font-medium">{f.otmadi}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="md:hidden space-y-2.5 xi-stagger">
+            {filiallar.map((f) => (
+              <div key={f.nomi} className="border border-slate-100 dark:border-slate-800 rounded-xl p-3">
+                <div className="font-medium text-slate-700 mb-1.5">{f.nomi}</div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                  <span>Jami: <strong className="text-slate-700">{f.jami}</strong></span>
+                  <span>Hujjat: <strong className="text-slate-700">{f.hujjatTayyor}</strong></span>
+                  <span className="text-emerald-600">O'tdi: <strong>{f.otdi}</strong></span>
+                  <span className="text-rose-600">O'tmadi: <strong>{f.otmadi}</strong></span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -210,11 +225,24 @@ function ReytingRoyxati({ royxat }) {
 
 function OqituvchiJadval({ sarlavha, royxat }) {
   return (
-    <div className="card overflow-x-auto">
+    <div className="card">
       <h2 className="font-semibold text-slate-800 mb-4">{sarlavha}</h2>
       {royxat.length === 0 ? (
         <p className="text-sm text-slate-400">Ma'lumot yo'q</p>
       ) : (
+        <>
+        <div className="md:hidden space-y-2 xi-stagger">
+          {royxat.map((o) => (
+            <div key={o.id} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 rounded-lg px-3 py-2 text-sm">
+              <span className="font-medium text-slate-700">{o.ism}</span>
+              <span className="text-slate-500">
+                <span className="text-emerald-600 font-medium">{o.otdi}</span>/{o.jami} ·{" "}
+                {o.foiz === null ? "—" : `${o.foiz}%`}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="overflow-x-auto hidden md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-slate-400 border-b border-slate-100">
@@ -237,6 +265,8 @@ function OqituvchiJadval({ sarlavha, royxat }) {
             ))}
           </tbody>
         </table>
+        </div>
+        </>
       )}
     </div>
   );

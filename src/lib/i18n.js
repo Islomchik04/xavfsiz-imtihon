@@ -25,6 +25,7 @@ const LUGAT = {
   nav_sozlamalar: { uz: "Sozlamalar", uzk: "Созламалар", ru: "Настройки" },
   chiqish: { uz: "Chiqish", uzk: "Чиқиш", ru: "Выйти" },
   menyu: { uz: "Menyu", uzk: "Меню", ru: "Меню" },
+  koproq: { uz: "Ko'proq", uzk: "Кўпроқ", ru: "Ещё" },
 
   // --- Umumiy amallar --------------------------------------------------------
   saqlash: { uz: "Saqlash", uzk: "Сақлаш", ru: "Сохранить" },

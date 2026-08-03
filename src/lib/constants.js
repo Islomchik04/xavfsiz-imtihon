@@ -45,6 +45,19 @@ export const OQITUVCHI_TURI = {
   amaliy: "Amaliy o'qituvchi",
 };
 
+// Talaba toifasi — haydovchilik toifalari + maxsus kurs turlari.
+export const TOIFALAR = {
+  A: "A",
+  B: "B",
+  BC: "BC",
+  C: "C",
+  D: "D",
+  DE: "DE",
+  CE: "CE",
+  express: "Express",
+  avtoledi: "Avtoledi",
+};
+
 // 083 forma holati — "Ha/Yo'q" o'rniga "Tayyor/Tayyor emas" ko'rinishida
 export const FORMA_083_LABEL = {
   true: "Tayyor",

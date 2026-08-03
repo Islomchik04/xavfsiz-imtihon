@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { IMTIHON_TURI } from "@/lib/constants";
+import { IMTIHON_TURI, TOIFALAR } from "@/lib/constants";
 import YangiTalabaForm from "../yangi/YangiTalabaForm";
 
 export default function AsosiyMalumotlarCard({ talaba, tahrirRuxsat, formaMalumotlari, profile }) {
@@ -38,6 +38,15 @@ export default function AsosiyMalumotlarCard({ talaba, tahrirRuxsat, formaMalumo
         )}
       </div>
       <div className="space-y-2 text-sm">
+        <Satr label="Toifa" qiymat={TOIFALAR[talaba.toifa]} />
+        <div className="flex justify-between gap-4 py-1.5 border-b border-slate-50 last:border-0">
+          <span className="text-slate-400">Qarzdorlik</span>
+          <span className={`font-medium text-right ${talaba.qarzdorlik ? "text-rose-600" : "text-emerald-600"}`}>
+            {talaba.qarzdorlik
+              ? `Bor — ${talaba.qarzdorlik_summasi != null ? Number(talaba.qarzdorlik_summasi).toLocaleString("uz-UZ") : "?"} so'm`
+              : "Yo'q"}
+          </span>
+        </div>
         <Satr label="Filial" qiymat={talaba.filiallar?.nomi} />
         <Satr label="Guruh" qiymat={talaba.guruhlar?.nomi} />
         <Satr label="Imtihon turi" qiymat={IMTIHON_TURI[talaba.imtihon_turi]} />
