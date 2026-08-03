@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -171,10 +172,10 @@ export default function ImtihonTafsilotClient({
             <button
               className="btn-secondary"
               disabled={holatYuklanmoqda}
-              onClick={() => holatniOzgartirish("boshlangan")}
-              title="Imtihonni qayta 'boshlangan' holatiga qaytarish — natijalarni tuzatish uchun"
+              onClick={() => holatniOzgartirish("boshlanmagan")}
+              title="Imtihonni avvalgi holatiga qaytarish — qayta 'Boshlash' tugmasi chiqadi"
             >
-              {holatYuklanmoqda ? "…" : "↺ Qayta boshlash holatiga qaytarish"}
+              {holatYuklanmoqda ? "…" : "↺ Avvalgi holatga qaytarish"}
             </button>
           )}
         </div>
@@ -806,6 +807,7 @@ function NatijaTugmalari({
         <div className="text-xs text-slate-400 mt-2">Natija belgilash uchun avval imtihonni boshlang</div>
       )}
 
+      {typeof document !== "undefined" && createPortal(
       <AnimatePresence>
         {modalOchiq && (
           <motion.div
@@ -894,7 +896,9 @@ function NatijaTugmalari({
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
     </div>
   );
 }
