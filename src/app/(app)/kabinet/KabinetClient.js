@@ -6,6 +6,7 @@ import StatTile from "@/components/StatTile";
 import { oqituvchiBoyichaStatistika } from "@/lib/statistika";
 import {
   oqituvchilarKpiHisoblash,
+  urinishTartibiBilan,
   oyKaliti,
   oyKorinishi,
   sanaKorinishi,
@@ -47,9 +48,13 @@ export default function KabinetClient({ oqituvchi, talabalar, urinishlar }) {
 
   const [tanlanganOy, setTanlanganOy] = useState(oylar[0] || oyKaliti(new Date().toISOString().slice(0, 10)));
 
+  // Urinish tartib raqamlari TO'LIQ tarixdan hisoblanadi, keyin tanlangan
+  // oyga filtrlanadi (2+ urinishda o'tganga mukofot yo'q qoidasi uchun).
+  const tartibliUrinishlar = useMemo(() => urinishTartibiBilan(urinishlar), [urinishlar]);
+
   const oyUrinishlari = useMemo(
-    () => urinishlar.filter((u) => u.imtihonlar?.sana && oyKaliti(u.imtihonlar.sana) === tanlanganOy),
-    [urinishlar, tanlanganOy]
+    () => tartibliUrinishlar.filter((u) => u.imtihonlar?.sana && oyKaliti(u.imtihonlar.sana) === tanlanganOy),
+    [tartibliUrinishlar, tanlanganOy]
   );
 
   const kpiRoyxat = useMemo(
@@ -111,7 +116,9 @@ export default function KabinetClient({ oqituvchi, talabalar, urinishlar }) {
           <div>
             <h2 className="font-semibold text-slate-800">{t("nav_kpi")}</h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Faqat sizga tegishli hisob. Haftalik (Dushanba–Yakshanba) alohida hisoblanadi.
+              Faqat sizga tegishli hisob. Haftalik (Dushanba–Yakshanba) alohida hisoblanadi. 2 yoki undan
+              ortiq urinishda o'tgan talaba uchun mukofot yozilmaydi — faqat birinchi urinishda o'tganlar
+              mukofotga hisoblanadi.
             </p>
           </div>
           <select className="input !w-auto" value={tanlanganOy} onChange={(e) => setTanlanganOy(e.target.value)}>

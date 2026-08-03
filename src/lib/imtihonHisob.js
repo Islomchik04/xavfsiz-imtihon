@@ -125,6 +125,41 @@ export function qaytaBiriktirishKerakmi(urinishlar) {
 
 export const KPI_MUKOFOT_BIR = 100000;
 
+// Talaba+qism darajasida har bir "otdi"/"otmadi" natijali urinishga tartib
+// raqami (1, 2, 3...) biriktiradi — "nazariyUrinishRaqami" / "amaliyUrinishRaqami"
+// maydonlari sifatida. Bu KPI'da "2 yoki undan ortiq urinishda o'tgan talaba
+// uchun mukofot yozilmasin" qoidasini qo'llash uchun kerak (faqat BIRINCHI
+// urinishda o'tish mukofotga arziydi — qayta topshirib o'tish emas).
+// "kelmadi"/"boshqa" natijalari KPI'dan chiqarib tashlangani uchun urinish
+// sifatida ham sanalmaydi.
+//
+// MUHIM: bu funksiyaga TO'LIQ (oy bilan cheklanmagan) urinishlar tarixi
+// berilishi kerak — aks holda oy chegarasi "1-urinish"ni noto'g'ri
+// aniqlashi mumkin (masalan avvalgi oyda otmagan, shu oyda o'tgan bo'lsa).
+export function urinishTartibiBilan(barchaUrinishlar) {
+  const nazariyHisob = new Map(); // talaba_id -> son
+  const amaliyHisob = new Map();
+
+  const tartiblangan = [...(barchaUrinishlar || [])].sort(
+    (a, b) => new Date(a.created_at) - new Date(b.created_at)
+  );
+
+  return tartiblangan.map((u) => {
+    const yangi = { ...u };
+    if (u.talaba_id && u.nazariy_kerak && (u.nazariy_natija === "otdi" || u.nazariy_natija === "otmadi")) {
+      const son = (nazariyHisob.get(u.talaba_id) || 0) + 1;
+      nazariyHisob.set(u.talaba_id, son);
+      yangi.nazariyUrinishRaqami = son;
+    }
+    if (u.talaba_id && u.amaliy_kerak && (u.amaliy_natija === "otdi" || u.amaliy_natija === "otmadi")) {
+      const son = (amaliyHisob.get(u.talaba_id) || 0) + 1;
+      amaliyHisob.set(u.talaba_id, son);
+      yangi.amaliyUrinishRaqami = son;
+    }
+    return yangi;
+  });
+}
+
 // Bitta davr (hafta) uchun: nechta o'quvchi o'tgan / o'tmagan bo'lsa,
 // domlaga qancha mukofot/jarima tegishini hisoblaydi.
 export function kpiDaraja(otgan, otmagan) {
@@ -162,15 +197,28 @@ export function oqituvchilarKpiHisoblash(urinishlar, oqituvchilar) {
   // Diqqat: "kelmadi" va "boshqa" natijalari KPI hisobidan butunlay chiqarib
   // tashlanadi (na o'tgan, na o'tmagan sifatida hisoblanmaydi) — bu odatda
   // o'qituvchining aybi bo'lmagani uchun. Faqat "otdi"/"otmadi" hisobga olinadi.
+  //
+  // Yana bir qoida: talaba 2 yoki undan ortiq urinishda (ya'ni qayta
+  // topshirib) o'tgan bo'lsa, bu o'tish uchun mukofot YOZILMAYDI — faqat
+  // BIRINCHI urinishda o'tgan talabalar mukofot hisoblanadi. Buning uchun
+  // urinishlar oldindan urinishTartibiBilan() orqali belgilangan bo'lishi
+  // kerak (nazariyUrinishRaqami/amaliyUrinishRaqami). "Otmadi" natijalar bu
+  // qoidadan ta'sirlanmaydi — har doim jarimaga hisoblanadi.
   for (const u of urinishlar) {
     const sana = u.imtihonlar?.sana;
     if (!sana) continue;
     const hafta = haftaBoshi(sana);
     if (u.nazariy_kerak && (u.nazariy_natija === "otdi" || u.nazariy_natija === "otmadi")) {
-      qoshish(u.talabalar?.nazariy_oqituvchi_id, hafta, u.nazariy_natija === "otdi");
+      const otdimi = u.nazariy_natija === "otdi";
+      if (!(otdimi && u.nazariyUrinishRaqami > 1)) {
+        qoshish(u.talabalar?.nazariy_oqituvchi_id, hafta, otdimi);
+      }
     }
     if (u.amaliy_kerak && (u.amaliy_natija === "otdi" || u.amaliy_natija === "otmadi")) {
-      qoshish(u.talabalar?.amaliy_oqituvchi_id, hafta, u.amaliy_natija === "otdi");
+      const otdimi = u.amaliy_natija === "otdi";
+      if (!(otdimi && u.amaliyUrinishRaqami > 1)) {
+        qoshish(u.talabalar?.amaliy_oqituvchi_id, hafta, otdimi);
+      }
     }
   }
 

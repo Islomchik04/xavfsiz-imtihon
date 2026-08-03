@@ -3,7 +3,7 @@ import { joriyFoydalanuvchi, rolgaRuxsat } from "@/lib/joriyFoydalanuvchi";
 import KpiClient from "./KpiClient";
 
 const URINISH_SELECT = `
-  nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija,
+  talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija, created_at,
   imtihonlar(sana),
   talabalar(nazariy_oqituvchi_id, amaliy_oqituvchi_id)
 `;

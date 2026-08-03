@@ -134,7 +134,7 @@ export default async function TalabalarSahifa({ searchParams }) {
                 </td>
                 <td className="py-2.5 text-slate-500">
                   {t.telefon ? (
-                    <a href={`tel:+998${t.telefon}`} className="text-brand-600 hover:underline" onClick={(e) => e.stopPropagation()}>
+                    <a href={`tel:+998${t.telefon}`} className="text-brand-600 hover:underline">
                       +998 {telefonKorinishi(t.telefon)}
                     </a>
                   ) : (
@@ -189,15 +189,7 @@ export default async function TalabalarSahifa({ searchParams }) {
               {TOIFALAR[t.toifa] || "—"} · {t.filiallar?.nomi} / {t.guruhlar?.nomi} · {IMTIHON_TURI[t.imtihon_turi]}
             </div>
             {t.telefon && (
-              <div className="text-xs mb-2">
-                <a
-                  href={`tel:+998${t.telefon}`}
-                  className="text-brand-600 hover:underline"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  📞 +998 {telefonKorinishi(t.telefon)}
-                </a>
-              </div>
+              <div className="text-xs text-slate-500 mb-2">📞 +998 {telefonKorinishi(t.telefon)}</div>
             )}
             <div className="flex flex-wrap gap-1.5">
               <span className={`badge ${TALABA_HOLATI_RANG[t.holat]}`}>{TALABA_HOLATI[t.holat]}</span>

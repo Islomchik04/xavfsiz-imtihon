@@ -1,12 +1,20 @@
 import ExcelJS from "exceljs";
 import { supabaseServer } from "@/lib/supabase/server";
-import { oqituvchilarKpiHisoblash, oyKaliti, sanaKorinishi } from "@/lib/imtihonHisob";
+import {
+  oqituvchilarKpiHisoblash,
+  urinishTartibiBilan,
+  oyKaliti,
+  sanaKorinishi,
+  haftaBoshi,
+  haftaOxiri,
+  KPI_MUKOFOT_BIR,
+} from "@/lib/imtihonHisob";
 import { OQITUVCHI_TURI } from "@/lib/constants";
 
 const URINISH_SELECT = `
-  nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija,
+  talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija, created_at,
   imtihonlar(sana),
-  talabalar(nazariy_oqituvchi_id, amaliy_oqituvchi_id)
+  talabalar(ism_familya, nazariy_oqituvchi_id, amaliy_oqituvchi_id, filiallar(nomi), guruhlar(nomi))
 `;
 
 // Superadmin uchun: tanlangan oyning KPI/maosh hisobotini Excel (.xlsx)
@@ -38,7 +46,11 @@ export async function GET(so_rov) {
     return new Response(`Ma'lumotlarni yuklashda xatolik: ${error.message}`, { status: 500 });
   }
 
-  const oyUrinishlari = (urinishlarXom || []).filter(
+  // Urinish tartib raqamlari TO'LIQ tarixdan hisoblanadi (2+ urinishda
+  // o'tganga mukofot yo'q qoidasi to'g'ri ishlashi uchun), keyin tanlangan
+  // oyga filtrlanadi.
+  const tartibliUrinishlar = urinishTartibiBilan(urinishlarXom || []);
+  const oyUrinishlari = tartibliUrinishlar.filter(
     (u) => u.imtihonlar?.sana && oyKaliti(u.imtihonlar.sana) === tanlanganOy
   );
   const kpiRoyxat = oqituvchilarKpiHisoblash(oyUrinishlari, oqituvchilar || []);
@@ -127,6 +139,86 @@ export async function GET(so_rov) {
         sof: h.sof,
       });
     }
+  }
+
+  // --- 3-bet: O'quvchilar tafsiloti (pastki list) ------------------------------
+  // Har bir o'qituvchi bo'yicha — o'sha oyda unga tegishli har bir o'quvchi
+  // urinishi (natijasi, necha-urinishligi va mukofotga hissasi) alohida
+  // qatorda ko'rinadi. Bu "Haftalik tafsilot" (faqat umumiy son) dan farqli
+  // ravishda ANIQ o'quvchi ismlari bilan.
+  const oqMap = new Map((oqituvchilar || []).map((o) => [o.id, o]));
+  const oquvchilarQatorlari = [];
+
+  for (const u of oyUrinishlari) {
+    const sana = u.imtihonlar?.sana;
+    if (!sana) continue;
+    const hafta = haftaBoshi(sana);
+    const talaba = u.talabalar;
+
+    function qatorQoshish(oqituvchiId, turi, natijaMaydon, urinishRaqami) {
+      const oq = oqMap.get(oqituvchiId);
+      if (!oq) return;
+      const natija = talaba?.[natijaMaydon];
+      if (natija !== "otdi" && natija !== "otmadi") return;
+      const otdimi = natija === "otdi";
+      const mukofotYoq = otdimi && urinishRaqami > 1;
+      oquvchilarQatorlari.push({
+        oqituvchiIsm: oq.ism_familya,
+        turi: OQITUVCHI_TURI[turi] || turi,
+        oquvchi: talaba?.ism_familya || "",
+        filial: talaba?.filiallar?.nomi || "",
+        guruh: talaba?.guruhlar?.nomi || "",
+        sana: sanaKorinishi(sana),
+        hafta: `${sanaKorinishi(hafta)} – ${sanaKorinishi(haftaOxiri(hafta))}`,
+        natija: otdimi ? "O'tdi" : "O'tmadi",
+        urinish: urinishRaqami || 1,
+        mukofot: otdimi ? (mukofotYoq ? 0 : KPI_MUKOFOT_BIR) : "",
+        izoh: mukofotYoq ? "2+ urinishda o'tgan — mukofot yo'q" : "",
+      });
+    }
+
+    if (u.nazariy_kerak) {
+      qatorQoshish(talaba?.nazariy_oqituvchi_id, "nazariy", "nazariy_natija", u.nazariyUrinishRaqami);
+    }
+    if (u.amaliy_kerak) {
+      qatorQoshish(talaba?.amaliy_oqituvchi_id, "amaliy", "amaliy_natija", u.amaliyUrinishRaqami);
+    }
+  }
+
+  oquvchilarQatorlari.sort((a, b) => {
+    if (a.oqituvchiIsm !== b.oqituvchiIsm) return a.oqituvchiIsm.localeCompare(b.oqituvchiIsm, "uz");
+    return a.sana.localeCompare(b.sana);
+  });
+
+  const oquvchilarBet = workbook.addWorksheet("O'quvchilar tafsiloti");
+  oquvchilarBet.columns = [
+    { header: "O'qituvchi", key: "oqituvchiIsm", width: 26 },
+    { header: "Turi", key: "turi", width: 12 },
+    { header: "O'quvchi", key: "oquvchi", width: 26 },
+    { header: "Filial", key: "filial", width: 18 },
+    { header: "Guruh", key: "guruh", width: 12 },
+    { header: "Sana", key: "sana", width: 12 },
+    { header: "Hafta", key: "hafta", width: 22 },
+    { header: "Natija", key: "natija", width: 12 },
+    { header: "Necha-urinishda", key: "urinish", width: 16 },
+    { header: "Mukofot (so'm)", key: "mukofot", width: 16 },
+    { header: "Izoh", key: "izoh", width: 32 },
+  ];
+  oquvchilarBet.getRow(1).font = { bold: true };
+
+  for (const q of oquvchilarQatorlari) {
+    const qator = oquvchilarBet.addRow(q);
+    if (q.natija === "O'tdi") {
+      qator.getCell("natija").font = { color: { argb: "FF059669" } };
+    } else {
+      qator.getCell("natija").font = { color: { argb: "FFE11D48" } };
+    }
+    if (q.izoh) {
+      qator.getCell("izoh").font = { color: { argb: "FFE11D48" }, italic: true };
+    }
+  }
+  if (oquvchilarQatorlari.length === 0) {
+    oquvchilarBet.addRow({ oqituvchiIsm: "Shu oyda ma'lumot yo'q" });
   }
 
   const buffer = await workbook.xlsx.writeBuffer();

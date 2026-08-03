@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import { oqituvchilarKpiHisoblash, oyKaliti, oyKorinishi, sanaKorinishi } from "@/lib/imtihonHisob";
+import { oqituvchilarKpiHisoblash, urinishTartibiBilan, oyKaliti, oyKorinishi, sanaKorinishi } from "@/lib/imtihonHisob";
 import { OQITUVCHI_TURI } from "@/lib/constants";
 
 function somKorinishi(son) {
@@ -20,9 +20,14 @@ export default function KpiClient({ urinishlar, oqituvchilar }) {
   const [tanlanganOy, setTanlanganOy] = useState(oylar[0] || oyKaliti(new Date().toISOString().slice(0, 10)));
   const [ochiqId, setOchiqId] = useState(null);
 
+  // Urinish tartib raqamlari TO'LIQ (oy bilan cheklanmagan) tarixdan
+  // hisoblanadi, keyin tanlangan oyga filtrlanadi — aks holda "2+ urinishda
+  // o'tganga mukofot yo'q" qoidasi oy chegarasida noto'g'ri ishlaydi.
+  const tartibliUrinishlar = useMemo(() => urinishTartibiBilan(urinishlar), [urinishlar]);
+
   const oyUrinishlari = useMemo(
-    () => urinishlar.filter((u) => u.imtihonlar?.sana && oyKaliti(u.imtihonlar.sana) === tanlanganOy),
-    [urinishlar, tanlanganOy]
+    () => tartibliUrinishlar.filter((u) => u.imtihonlar?.sana && oyKaliti(u.imtihonlar.sana) === tanlanganOy),
+    [tartibliUrinishlar, tanlanganOy]
   );
 
   const kpiRoyxat = useMemo(
@@ -209,6 +214,11 @@ export default function KpiClient({ urinishlar, oqituvchilar }) {
         o'tmagan uchun 50 000 so'm jarima. 50% dan past bo'lsa — har bir o'tmagan uchun 100 000 so'm (to'liq)
         jarima. Har hafta (Dushanba–Yakshanba) mustaqil hisoblanadi, oylik natija — shu oydagi barcha
         haftalar yig'indisi.
+        <br />
+        <strong className="text-slate-600">Diqqat:</strong> talaba 2 yoki undan ortiq urinishda (qayta
+        topshirib) o'tgan bo'lsa, bu o'tish uchun mukofot YOZILMAYDI — faqat birinchi urinishdayoq o'tgan
+        talabalar mukofotga hisoblanadi. O'tmagan urinish — necha-urinishligidan qat'i nazar — har doim
+        jarimaga hisoblanaveradi.
       </div>
     </div>
   );
