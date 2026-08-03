@@ -71,7 +71,7 @@ export default function YangiTalabaForm({
     e.preventDefault();
     setXato("");
 
-    if (!filialId || !guruhRaqami.trim() || !imtihonTuri || forma083 === "" || !toifa) {
+    if (!filialId || (!expressToifa && !guruhRaqami.trim()) || !imtihonTuri || forma083 === "" || !toifa) {
       setXato("Barcha maydonlarni to'ldiring");
       return;
     }
@@ -80,7 +80,7 @@ export default function YangiTalabaForm({
       setXato("Telefon raqamini to'liq kiriting (9 xonali, masalan: 91 234 56 78)");
       return;
     }
-    if (!/^\d+$/.test(guruhRaqami.trim())) {
+    if (!expressToifa && !/^\d+$/.test(guruhRaqami.trim())) {
       setXato("Guruh raqami faqat sonlardan iborat bo'lishi kerak");
       return;
     }
@@ -93,13 +93,15 @@ export default function YangiTalabaForm({
     setYuklanmoqda(true);
     const supabase = supabaseBrowser();
 
-    let guruhId;
-    try {
-      guruhId = await guruhIdTop(supabase, guruhRaqami, filialId);
-    } catch (err) {
-      setYuklanmoqda(false);
-      setXato(`Guruhni aniqlashda xatolik: ${err.message}`);
-      return;
+    let guruhId = null;
+    if (!expressToifa) {
+      try {
+        guruhId = await guruhIdTop(supabase, guruhRaqami, filialId);
+      } catch (err) {
+        setYuklanmoqda(false);
+        setXato(`Guruhni aniqlashda xatolik: ${err.message}`);
+        return;
+      }
     }
 
     const maydonlar = {
@@ -217,7 +219,7 @@ export default function YangiTalabaForm({
         </select>
         {expressToifa && (
           <p className="text-xs text-slate-400 mt-1">
-            Express toifadagi talabalar o'qituvchiga biriktirilmaydi va KPI hisobiga kirmaydi.
+            Express toifadagi talabalar o'qituvchiga va guruhga biriktirilmaydi, KPI hisobiga ham kirmaydi.
           </p>
         )}
       </div>
@@ -264,21 +266,23 @@ export default function YangiTalabaForm({
         )}
       </div>
 
-      <div>
-        <label className="label">Int'alim guruhini yozing</label>
-        <input
-          className="input"
-          type="text"
-          inputMode="numeric"
-          value={guruhRaqami}
-          onChange={(e) => setGuruhRaqami(e.target.value.replace(/[^\d]/g, ""))}
-          placeholder="Masalan: 24"
-          required
-        />
-        <p className="text-xs text-slate-400 mt-1">
-          Faqat raqam kiriting. Bir xil raqamli guruhlar avtomatik bitta guruhga biriktiriladi.
-        </p>
-      </div>
+      {!expressToifa && (
+        <div>
+          <label className="label">Int'alim guruhini yozing</label>
+          <input
+            className="input"
+            type="text"
+            inputMode="numeric"
+            value={guruhRaqami}
+            onChange={(e) => setGuruhRaqami(e.target.value.replace(/[^\d]/g, ""))}
+            placeholder="Masalan: 24"
+            required
+          />
+          <p className="text-xs text-slate-400 mt-1">
+            Faqat raqam kiriting. Bir xil raqamli guruhlar avtomatik bitta guruhga biriktiriladi.
+          </p>
+        </div>
+      )}
 
       <div>
         <label className="label">083 forma</label>
