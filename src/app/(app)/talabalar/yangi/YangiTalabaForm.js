@@ -48,19 +48,25 @@ export default function YangiTalabaForm({
   const [xato, setXato] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
 
+  // Superadmin uchun filial-o'qituvchi biriktirmasi cheklovi qo'llanilmaydi —
+  // superadmin istalgan o'qituvchini istalgan talabaga biriktira oladi
+  // (hattoki o'sha o'qituvchi shu filialga rasmiy ravishda biriktirilmagan
+  // bo'lsa ham). Admin/Hujjatchi uchun esa faqat shu filialga biriktirilgan
+  // o'qituvchilar ko'rinadi.
+  const superadminRol = profile.role === "superadmin";
   const nazariyOqituvchilar = useMemo(
     () =>
       oqituvchilar.filter(
-        (o) => o.turi === "nazariy" && (o.filiallar || []).includes(filialId)
+        (o) => o.turi === "nazariy" && (superadminRol || (o.filiallar || []).includes(filialId))
       ),
-    [oqituvchilar, filialId]
+    [oqituvchilar, filialId, superadminRol]
   );
   const amaliyOqituvchilar = useMemo(
     () =>
       oqituvchilar.filter(
-        (o) => o.turi === "amaliy" && (o.filiallar || []).includes(filialId)
+        (o) => o.turi === "amaliy" && (superadminRol || (o.filiallar || []).includes(filialId))
       ),
-    [oqituvchilar, filialId]
+    [oqituvchilar, filialId, superadminRol]
   );
 
   const expressToifa = toifa === "express";
@@ -311,14 +317,23 @@ export default function YangiTalabaForm({
       {nazariyKerak && (
         <div>
           <label className="label">Nazariy o'qituvchi</label>
-          <select className="input" value={nazariyOqituvchiId} onChange={(e) => setNazariyOqituvchiId(e.target.value)} disabled={!filialId}>
+          <select
+            className="input"
+            value={nazariyOqituvchiId}
+            onChange={(e) => setNazariyOqituvchiId(e.target.value)}
+            disabled={!superadminRol && !filialId}
+          >
             <option value="">Yo'q (biriktirilmagan)</option>
             {nazariyOqituvchilar.map((o) => (
               <option key={o.id} value={o.id}>{o.ism_familya}</option>
             ))}
           </select>
-          {filialId && nazariyOqituvchilar.length === 0 && (
-            <p className="text-xs text-amber-600 mt-1">Bu filialga biriktirilgan nazariy o'qituvchi yo'q — Sozlamalardan qo'shing.</p>
+          {(superadminRol || filialId) && nazariyOqituvchilar.length === 0 && (
+            <p className="text-xs text-amber-600 mt-1">
+              {superadminRol
+                ? "Tizimda faol nazariy o'qituvchi yo'q — Sozlamalardan qo'shing."
+                : "Bu filialga biriktirilgan nazariy o'qituvchi yo'q — Sozlamalardan qo'shing."}
+            </p>
           )}
         </div>
       )}
@@ -326,14 +341,23 @@ export default function YangiTalabaForm({
       {amaliyKerak && (
         <div>
           <label className="label">Amaliy o'qituvchi</label>
-          <select className="input" value={amaliyOqituvchiId} onChange={(e) => setAmaliyOqituvchiId(e.target.value)} disabled={!filialId}>
+          <select
+            className="input"
+            value={amaliyOqituvchiId}
+            onChange={(e) => setAmaliyOqituvchiId(e.target.value)}
+            disabled={!superadminRol && !filialId}
+          >
             <option value="">Yo'q (biriktirilmagan)</option>
             {amaliyOqituvchilar.map((o) => (
               <option key={o.id} value={o.id}>{o.ism_familya}</option>
             ))}
           </select>
-          {filialId && amaliyOqituvchilar.length === 0 && (
-            <p className="text-xs text-amber-600 mt-1">Bu filialga biriktirilgan amaliy o'qituvchi yo'q — Sozlamalardan qo'shing.</p>
+          {(superadminRol || filialId) && amaliyOqituvchilar.length === 0 && (
+            <p className="text-xs text-amber-600 mt-1">
+              {superadminRol
+                ? "Tizimda faol amaliy o'qituvchi yo'q — Sozlamalardan qo'shing."
+                : "Bu filialga biriktirilgan amaliy o'qituvchi yo'q — Sozlamalardan qo'shing."}
+            </p>
           )}
         </div>
       )}
