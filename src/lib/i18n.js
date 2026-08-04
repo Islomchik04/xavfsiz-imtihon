@@ -20,6 +20,7 @@ const LUGAT = {
   nav_yangi_talaba: { uz: "Yangi talaba", uzk: "Янги талаба", ru: "Новый студент" },
   nav_imtihonlar: { uz: "Imtihonlar", uzk: "Имтиҳонлар", ru: "Экзамены" },
   nav_hisobotlar: { uz: "Hisobotlar", uzk: "Ҳисоботлар", ru: "Отчёты" },
+  nav_arxiv: { uz: "Arxiv", uzk: "Архив", ru: "Архив" },
   nav_kpi: { uz: "KPI / Maosh", uzk: "KPI / Маош", ru: "KPI / Зарплата" },
   nav_kabinet: { uz: "Mening kabinetim", uzk: "Менинг кабинетим", ru: "Мой кабинет" },
   nav_sozlamalar: { uz: "Sozlamalar", uzk: "Созламалар", ru: "Настройки" },

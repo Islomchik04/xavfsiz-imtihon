@@ -7,6 +7,7 @@ import AsosiyMalumotlarCard from "./AsosiyMalumotlarCard";
 import HujjatchiForm from "./HujjatchiForm";
 import NatijaForm from "./NatijaForm";
 import TalabaniOchirish from "./TalabaniOchirish";
+import ArxivBoshqaruvi from "./ArxivBoshqaruvi";
 
 const TALABA_SELECT = `
   *,
@@ -100,10 +101,16 @@ export default async function TalabaDetailSahifa({ params }) {
             </Badge>
           )}
           <span className={`badge ${TALABA_HOLATI_RANG[holat]}`}>{TALABA_HOLATI[holat]}</span>
+          {talaba.arxivlangan && <Badge ton="slate">🗄️ Arxivlangan</Badge>}
         </div>
-        {profile.role === "superadmin" && (
-          <TalabaniOchirish talabaId={talaba.id} ismFamilya={talaba.ism_familya} />
-        )}
+        <div className="flex items-center gap-3 mt-2">
+          {profile.role === "superadmin" && (
+            <ArxivBoshqaruvi talabaId={talaba.id} arxivlanganmi={talaba.arxivlangan} />
+          )}
+          {profile.role === "superadmin" && (
+            <TalabaniOchirish talabaId={talaba.id} ismFamilya={talaba.ism_familya} />
+          )}
+        </div>
       </div>
 
       <AsosiyMalumotlarCard
@@ -146,6 +153,7 @@ export default async function TalabaDetailSahifa({ params }) {
             natijaTahrirRuxsat={natijaTahrirRuxsat}
             qaytaBiriktirishRuxsat={qaytaBiriktirishRuxsat}
             imtihonlar={imtihonlar}
+            superadminMi={profile.role === "superadmin"}
           />
         )}
       </div>

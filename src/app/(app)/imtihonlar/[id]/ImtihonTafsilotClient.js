@@ -19,6 +19,7 @@ export default function ImtihonTafsilotClient({
   superadminMi,
   oqituvchilar,
   sabablar,
+  aktivImtihonlar,
 }) {
   const router = useRouter();
   // Diqqat: "amaliy o'qituvchi" tushunchasi tizimdan olib tashlangan —
@@ -280,6 +281,7 @@ export default function ImtihonTafsilotClient({
                   nazariyOqituvchilar={nazariyOqituvchilarRoyxati}
                   imtihonBoshlandimi={imtihonBoshlandimi}
                   amaliygaTaklifQilish
+                  aktivImtihonlar={aktivImtihonlar}
                   onYangilash={(oz) => yangilaUrinish(u.id, oz)}
                   onOtkazildi={() => router.refresh()}
                 />
@@ -426,6 +428,7 @@ function TalabaQoshish({ imtihonId, mavjudTalabaIdlar, onQoshildi }) {
       .select("id, ism_familya, imtihon_turi, hujjat_tayyor, filiallar(nomi), guruhlar(nomi)")
       .or(`ism_familya.ilike.%${matn.trim()}%,intalim_id.ilike.%${matn.trim()}%`)
       .eq("hujjat_tayyor", true)
+      .eq("arxivlangan", false)
       .limit(8);
     setQidirilmoqda(false);
     setNatijalar((data || []).filter((t) => !mavjudTalabaIdlar.includes(t.id)));
@@ -553,6 +556,7 @@ function UrinishKartochka({
   nazariyOqituvchilar,
   imtihonBoshlandimi,
   amaliygaTaklifQilish,
+  aktivImtihonlar,
   onYangilash,
   onOtkazildi,
 }) {
@@ -602,6 +606,7 @@ function UrinishKartochka({
             onOqituvchiBiriktirildi={onOtkazildi}
             natija={urinish.nazariy_natija}
             sababId={urinish.nazariy_sabab_id}
+            joriyUrinishRaqami={urinish.nazariy_urinish_raqami}
             sabablar={sabablar}
             tahrirRuxsat={tahrirRuxsat}
             imtihonBoshlandimi={imtihonBoshlandimi}
@@ -618,6 +623,7 @@ function UrinishKartochka({
             talabaId={talaba.id}
             natija={urinish.amaliy_natija}
             sababId={urinish.amaliy_sabab_id}
+            joriyUrinishRaqami={urinish.amaliy_urinish_raqami}
             sabablar={sabablar}
             tahrirRuxsat={tahrirRuxsat}
             imtihonBoshlandimi={imtihonBoshlandimi}
@@ -630,18 +636,33 @@ function UrinishKartochka({
       </div>
 
       {amaliygaTaklifQilish && otkazishRuxsat && (
-        <AmaliygaOtkazishForma talabaId={talaba.id} imtihonId={imtihonId} onOtkazildi={onOtkazildi} />
+        <AmaliygaOtkazishForma
+          talabaId={talaba.id}
+          imtihonId={imtihonId}
+          aktivImtihonlar={aktivImtihonlar}
+          onOtkazildi={onOtkazildi}
+        />
       )}
     </div>
   );
 }
 
-function AmaliygaOtkazishForma({ talabaId, imtihonId, onOtkazildi }) {
+// Talabani amaliy imtihonga o'tkazishda — hozirgi (shu sahifadagi) imtihon
+// avtomatik tanlanadi, lekin xohlasa boshqa aktiv (hali yakunlanmagan)
+// imtihonni ham tanlashi mumkin (masalan boshqa kunga rejalashtirilgan).
+function AmaliygaOtkazishForma({ talabaId, imtihonId, aktivImtihonlar, onOtkazildi }) {
   const [ochiq, setOchiq] = useState(false);
+  const [tanlanganImtihonId, setTanlanganImtihonId] = useState(imtihonId);
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
   const [xato, setXato] = useState("");
 
+  const royxat = aktivImtihonlar && aktivImtihonlar.length > 0 ? aktivImtihonlar : [{ id: imtihonId, sana: null, izoh: null }];
+
   async function otkazish() {
+    if (!tanlanganImtihonId) {
+      setXato("Imtihonni tanlang");
+      return;
+    }
     setYuklanmoqda(true);
     setXato("");
     const supabase = supabaseBrowser();
@@ -649,7 +670,7 @@ function AmaliygaOtkazishForma({ talabaId, imtihonId, onOtkazildi }) {
     // tanlanmaydi, doim null yuboriladi.
     const { error } = await supabase.rpc("amaliyga_otkazish", {
       p_talaba_id: talabaId,
-      p_imtihon_id: imtihonId,
+      p_imtihon_id: tanlanganImtihonId,
       p_amaliy_oqituvchi_id: null,
     });
     setYuklanmoqda(false);
@@ -663,7 +684,14 @@ function AmaliygaOtkazishForma({ talabaId, imtihonId, onOtkazildi }) {
 
   if (!ochiq) {
     return (
-      <button type="button" onClick={() => setOchiq(true)} className="btn-secondary !py-2 !text-sm w-full mt-3">
+      <button
+        type="button"
+        onClick={() => {
+          setTanlanganImtihonId(imtihonId);
+          setOchiq(true);
+        }}
+        className="btn-secondary !py-2 !text-sm w-full mt-3"
+      >
         + Amaliy imtihonga qo'shish
       </button>
     );
@@ -671,7 +699,19 @@ function AmaliygaOtkazishForma({ talabaId, imtihonId, onOtkazildi }) {
 
   return (
     <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mt-3 space-y-2">
-      <div className="text-xs font-medium text-emerald-700">Shu imtihon kuniga amaliyga biriktirilsinmi?</div>
+      <div className="text-xs font-medium text-emerald-700">Qaysi imtihonga amaliyga biriktirilsin?</div>
+      <select
+        className="input !py-2 !text-sm"
+        value={tanlanganImtihonId}
+        onChange={(e) => setTanlanganImtihonId(e.target.value)}
+      >
+        {royxat.map((i) => (
+          <option key={i.id} value={i.id}>
+            {i.sana ? sanaKorinishi(i.sana) : "Shu imtihon"} {i.izoh ? `— ${i.izoh}` : ""}
+            {i.id === imtihonId ? " (joriy)" : ""}
+          </option>
+        ))}
+      </select>
       {xato && <div className="text-xs text-rose-600">{xato}</div>}
       <div className="flex gap-2">
         <button
@@ -774,6 +814,7 @@ function NatijaTugmalari({
   onOqituvchiBiriktirildi,
   natija,
   sababId,
+  joriyUrinishRaqami,
   sabablar,
   tahrirRuxsat,
   imtihonBoshlandimi,
@@ -856,6 +897,7 @@ function NatijaTugmalari({
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-xs font-medium text-slate-500 text-right">
             {NATIJA[natija]}
+            {natija === "otdi" && joriyUrinishRaqami ? ` (${joriyUrinishRaqami}-urinish)` : ""}
             {joriySabab && ` — ${joriySabab}`}
           </span>
           {tahrirRuxsat && (

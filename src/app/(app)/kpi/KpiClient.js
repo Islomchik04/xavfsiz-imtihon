@@ -2,7 +2,9 @@
 
 import { Fragment, useMemo, useState } from "react";
 import { oqituvchilarKpiHisoblash, urinishTartibiBilan, oyKaliti, oyKorinishi, sanaKorinishi } from "@/lib/imtihonHisob";
+import { oqituvchiBoyichaStatistika } from "@/lib/statistika";
 import { OQITUVCHI_TURI } from "@/lib/constants";
+import OqituvchiTalabalariModal from "@/components/OqituvchiTalabalariModal";
 
 function somKorinishi(son) {
   return new Intl.NumberFormat("uz-UZ").format(son) + " so'm";
@@ -34,6 +36,14 @@ export default function KpiClient({ urinishlar, oqituvchilar }) {
     () => oqituvchilarKpiHisoblash(oyUrinishlari, oqituvchilar),
     [oyUrinishlari, oqituvchilar]
   );
+
+  // O'qituvchining BUTUN (oy bilan cheklanmagan) statistikasi — drill-down
+  // popup ochilganda "to'liq statistikasi" sifatida ko'rsatiladi.
+  const toliqOqituvchiStatistika = useMemo(() => {
+    const royxat = oqituvchiBoyichaStatistika(tartibliUrinishlar, "nazariy");
+    return new Map(royxat.map((s) => [s.id, s]));
+  }, [tartibliUrinishlar]);
+  const [modalOqituvchi, setModalOqituvchi] = useState(null);
 
   const jamiSof = kpiRoyxat.reduce((s, r) => s + r.oy.sof, 0);
   const jamiMukofot = kpiRoyxat.reduce((s, r) => s + r.oy.mukofot, 0);
@@ -104,7 +114,18 @@ export default function KpiClient({ urinishlar, oqituvchilar }) {
                     className="border-b border-slate-50 last:border-0 hover:bg-slate-50 cursor-pointer"
                     onClick={() => setOchiqId(ochiqId === r.oqituvchi.id ? null : r.oqituvchi.id)}
                   >
-                    <td className="p-3 font-medium text-slate-700">{r.oqituvchi.ism_familya}</td>
+                    <td className="p-3 font-medium text-slate-700">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setModalOqituvchi(r.oqituvchi);
+                        }}
+                        className="hover:text-brand-600 hover:underline"
+                      >
+                        {r.oqituvchi.ism_familya}
+                      </button>
+                    </td>
                     <td className="p-3 text-slate-500">{OQITUVCHI_TURI[r.oqituvchi.turi]}</td>
                     <td className="p-3 text-right text-emerald-600 font-medium">{r.oy.otgan}</td>
                     <td className="p-3 text-right text-rose-600 font-medium">{r.oy.otmagan}</td>
@@ -173,7 +194,17 @@ export default function KpiClient({ urinishlar, oqituvchilar }) {
                 onClick={() => setOchiqId(ochiqId === r.oqituvchi.id ? null : r.oqituvchi.id)}
               >
                 <div>
-                  <div className="font-semibold text-slate-700">{r.oqituvchi.ism_familya}</div>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setModalOqituvchi(r.oqituvchi);
+                    }}
+                    className="font-semibold text-slate-700 hover:text-brand-600 hover:underline w-fit"
+                  >
+                    {r.oqituvchi.ism_familya}
+                  </div>
                   <div className="text-xs text-slate-400">{OQITUVCHI_TURI[r.oqituvchi.turi]}</div>
                 </div>
                 <div className="text-right">
@@ -220,6 +251,14 @@ export default function KpiClient({ urinishlar, oqituvchilar }) {
         talabalar mukofotga hisoblanadi. O'tmagan urinish — necha-urinishligidan qat'i nazar — har doim
         jarimaga hisoblanaveradi.
       </div>
+
+      {modalOqituvchi && (
+        <OqituvchiTalabalariModal
+          oqituvchi={modalOqituvchi}
+          statistika={toliqOqituvchiStatistika.get(modalOqituvchi.id)}
+          onYopish={() => setModalOqituvchi(null)}
+        />
+      )}
     </div>
   );
 }

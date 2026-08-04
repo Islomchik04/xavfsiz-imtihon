@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { davrBoyichaStatistika } from "@/lib/statistika";
+import { davrBoyichaStatistika, oqituvchiBoyichaStatistika } from "@/lib/statistika";
 import { haftaBoshi, haftaOxiri, oyKaliti, oyKorinishi, sanaKorinishi } from "@/lib/imtihonHisob";
+import OqituvchiTalabalariModal from "@/components/OqituvchiTalabalariModal";
 
 const TABLAR = [
   { key: "kun", label: "Imtihon kuni bo'yicha" },
@@ -43,6 +44,14 @@ export default function HisobotlarClient({ urinishlar, boshlangichImtihonId }) {
   );
 
   const royxat = tab === "kun" ? kunlik : tab === "hafta" ? haftalik : oylik;
+
+  // O'qituvchining BUTUN (davr bilan cheklanmagan) statistikasi — drill-down
+  // popup ochilganda ko'rsatiladi ("to'liq statistikasi").
+  const toliqOqituvchiStatistika = useMemo(() => {
+    const royxat = oqituvchiBoyichaStatistika(urinishlar, "nazariy");
+    return new Map(royxat.map((s) => [s.id, s]));
+  }, [urinishlar]);
+  const [modalOqituvchi, setModalOqituvchi] = useState(null);
 
   const [tanlangan, setTanlangan] = useState(boshlangichSana);
   useEffect(() => {
@@ -99,14 +108,24 @@ export default function HisobotlarClient({ urinishlar, boshlangichImtihonId }) {
             ))}
           </div>
 
-          {tanlanganYozuv && <BatafsilPanel yozuv={tanlanganYozuv} />}
+          {tanlanganYozuv && (
+            <BatafsilPanel yozuv={tanlanganYozuv} onOqituvchiTanlash={setModalOqituvchi} />
+          )}
         </div>
+      )}
+
+      {modalOqituvchi && (
+        <OqituvchiTalabalariModal
+          oqituvchi={modalOqituvchi}
+          statistika={toliqOqituvchiStatistika.get(modalOqituvchi.id)}
+          onYopish={() => setModalOqituvchi(null)}
+        />
       )}
     </div>
   );
 }
 
-function BatafsilPanel({ yozuv }) {
+function BatafsilPanel({ yozuv, onOqituvchiTanlash }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -132,27 +151,36 @@ function BatafsilPanel({ yozuv }) {
         ) : (
           <div className="space-y-2">
             {yozuv.top.map((o, i) => (
-              <div key={o.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
+              <button
+                type="button"
+                key={o.id}
+                onClick={() => onOqituvchiTanlash({ id: o.id, ism_familya: o.ism })}
+                className="w-full flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition rounded-lg px-3 py-2 text-left"
+              >
                 <div className="flex items-center gap-2">
                   <span className="text-base">{["🥇", "🥈", "🥉"][i] || `${i + 1}.`}</span>
-                  <span className="font-medium text-slate-700">{o.ism}</span>
+                  <span className="font-medium text-slate-700 hover:underline">{o.ism}</span>
                 </div>
                 <div className="text-sm text-slate-500">
                   <span className="text-emerald-600 font-semibold">{o.otdi} o'tdi</span>
                   {o.otmadi > 0 && <span className="text-rose-500 ml-2">{o.otmadi} o'tmadi</span>}
                   <span className="ml-2 text-slate-400">{o.foiz}%</span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
         {yozuv.engKopYiqilgan && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-sm">
+          <button
+            type="button"
+            onClick={() => onOqituvchiTanlash({ id: yozuv.engKopYiqilgan.id, ism_familya: yozuv.engKopYiqilgan.ism })}
+            className="w-full mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-sm hover:opacity-80"
+          >
             <span className="text-slate-500">Eng ko'p yiqilgan o'qituvchi</span>
-            <span className="font-medium text-rose-600">
+            <span className="font-medium text-rose-600 hover:underline">
               {yozuv.engKopYiqilgan.ism} · {yozuv.engKopYiqilgan.otmadi} ta
             </span>
-          </div>
+          </button>
         )}
       </div>
     </div>

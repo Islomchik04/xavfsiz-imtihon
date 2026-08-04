@@ -4,7 +4,7 @@ import ImtihonTafsilotClient from "./ImtihonTafsilotClient";
 
 const URINISH_SELECT = `
   id, talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija,
-  nazariy_sabab_id, amaliy_sabab_id,
+  nazariy_sabab_id, amaliy_sabab_id, nazariy_urinish_raqami, amaliy_urinish_raqami,
   talabalar!inner(
     id, ism_familya, toifa, intalim_id,
     filiallar(nomi), guruhlar(nomi),
@@ -19,7 +19,13 @@ export default async function ImtihonTafsilotSahifa({ params }) {
     redirect("/dashboard");
   }
 
-  const [{ data: imtihon, error: imtihonXato }, { data: urinishlar }, { data: sabablar }, { data: oqituvchilar }] = await Promise.all([
+  const [
+    { data: imtihon, error: imtihonXato },
+    { data: urinishlar },
+    { data: sabablar },
+    { data: oqituvchilar },
+    { data: aktivImtihonlar },
+  ] = await Promise.all([
     supabase.from("imtihonlar").select("id, sana, izoh, holati, boshlangan_vaqt, yakunlangan_vaqt").eq("id", params.id).single(),
     supabase
       .from("talaba_imtihonlar")
@@ -28,6 +34,14 @@ export default async function ImtihonTafsilotSahifa({ params }) {
       .order("ism_familya", { foreignTable: "talabalar" }),
     supabase.from("sabablar").select("id, matn").eq("faol", true).order("created_at"),
     supabase.from("oqituvchilar").select("id, ism_familya, turi").eq("faol", true).order("ism_familya"),
+    // Amaliyga o'tkazishda talabani QAYSI imtihonga biriktirish kerakligini
+    // tanlash uchun — hozirgi vaqtda "aktiv" (hali yakunlanmagan) barcha
+    // imtihonlar ro'yxati.
+    supabase
+      .from("imtihonlar")
+      .select("id, sana, izoh, holati")
+      .in("holati", ["boshlanmagan", "boshlangan"])
+      .order("sana", { ascending: false }),
   ]);
 
   if (imtihonXato || !imtihon) notFound();
@@ -42,6 +56,7 @@ export default async function ImtihonTafsilotSahifa({ params }) {
       superadminMi={profile.role === "superadmin"}
       oqituvchilar={oqituvchilar || []}
       sabablar={sabablar || []}
+      aktivImtihonlar={aktivImtihonlar || []}
     />
   );
 }

@@ -16,7 +16,11 @@ export default async function TalabalarSahifa({ searchParams }) {
   const holatFiltr = searchParams?.holat || "";
   const toifaFiltr = searchParams?.toifa || "";
 
-  let so_rov = supabase.from("talabalar").select(TALABA_SELECT).order("created_at", { ascending: false });
+  let so_rov = supabase
+    .from("talabalar")
+    .select(TALABA_SELECT)
+    .eq("arxivlangan", false)
+    .order("created_at", { ascending: false });
   if (q) so_rov = so_rov.or(`ism_familya.ilike.%${q}%,intalim_id.ilike.%${q}%`);
   if (toifaFiltr) so_rov = so_rov.eq("toifa", toifaFiltr);
 
@@ -108,6 +112,18 @@ export default async function TalabalarSahifa({ searchParams }) {
         </div>
         <button className="btn-secondary" type="submit">Qidirish</button>
       </form>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-500">
+          <span className="font-semibold text-slate-700">{royxat.length}</span> ta natija topildi
+        </p>
+        <a
+          href={`/api/talabalar-eksport?${new URLSearchParams({ q, holat: holatFiltr, toifa: toifaFiltr })}`}
+          className="btn-secondary !py-2 !text-sm"
+        >
+          📊 Excel yuklab olish
+        </a>
+      </div>
 
       {error && <div className="card text-rose-600">Xatolik: {error.message}</div>}
 

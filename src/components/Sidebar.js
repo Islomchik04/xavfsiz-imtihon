@@ -13,6 +13,7 @@ const LINKLAR = [
   { href: "/talabalar", key: "nav_talabalar", ikon: "🧑‍🎓", rollar: ["superadmin", "admin", "hujjatchi", "imtihonchi"] },
   { href: "/talabalar/yangi", key: "nav_yangi_talaba", ikon: "➕", rollar: ["admin", "hujjatchi", "superadmin"] },
   { href: "/imtihonlar", key: "nav_imtihonlar", ikon: "🗓️", rollar: ["hujjatchi", "imtihonchi", "superadmin"] },
+  { href: "/arxiv", key: "nav_arxiv", ikon: "🗄️", rollar: ["superadmin", "admin", "hujjatchi", "imtihonchi"] },
   { href: "/hisobotlar", key: "nav_hisobotlar", ikon: "📈", rollar: ["superadmin", "admin", "hujjatchi", "imtihonchi"] },
   { href: "/kpi", key: "nav_kpi", ikon: "💰", rollar: ["superadmin"] },
   { href: "/kabinet", key: "nav_kabinet", ikon: "🎓", rollar: ["oqituvchi"] },
