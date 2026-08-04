@@ -48,6 +48,7 @@ export default async function TalabaDetailSahifa({ params }) {
   const asosiyTahrirRuxsat =
     profile.role === "superadmin" ||
     profile.role === "hujjatchi" ||
+    profile.role === "imtihonchi" ||
     (profile.role === "admin" && !talaba.hujjat_tayyor && profile.filial_id === talaba.filial_id);
 
   const hujjatTahrirRuxsat =

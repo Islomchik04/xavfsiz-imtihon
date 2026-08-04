@@ -80,9 +80,20 @@ export default function ImtihonTafsilotClient({
     );
   }
 
-  const nazariydanOtganlar = useMemo(() => filtrlangan.filter(amaliygaTayyormi), [filtrlangan, amaliyBorTalabalar]);
+  // Shu imtihon doirasida amaliydan o'tib — prava olganlar (alohida bo'lim
+  // sifatida ajratib ko'rsatiladi, "nazariydan o'tganlar"/"qolganlar" bilan
+  // aralashtirilmaydi).
+  function amaliydanOtganmi(u) {
+    return u.amaliy_kerak && u.amaliy_natija === "otdi";
+  }
+
+  const amaliydanOtganlar = useMemo(() => filtrlangan.filter(amaliydanOtganmi), [filtrlangan]);
+  const nazariydanOtganlar = useMemo(
+    () => filtrlangan.filter((u) => amaliygaTayyormi(u) && !amaliydanOtganmi(u)),
+    [filtrlangan, amaliyBorTalabalar]
+  );
   const qolganlar = useMemo(
-    () => filtrlangan.filter((u) => !amaliygaTayyormi(u)),
+    () => filtrlangan.filter((u) => !amaliygaTayyormi(u) && !amaliydanOtganmi(u)),
     [filtrlangan, amaliyBorTalabalar]
   );
 
@@ -226,6 +237,29 @@ export default function ImtihonTafsilotClient({
         <div className="card text-sm text-slate-400">Hech narsa topilmadi.</div>
       ) : (
         <div className="space-y-5">
+          {amaliydanOtganlar.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold text-brand-700 flex items-center gap-1.5">
+                🚗 Amaliydan o'tganlar — prava oldi ({amaliydanOtganlar.length})
+              </h2>
+              {amaliydanOtganlar.map((u) => (
+                <UrinishKartochka
+                  key={u.id}
+                  urinish={u}
+                  tahrirRuxsat={natijaBelgilashRuxsat}
+                  otkazishRuxsat={otkazishRuxsat}
+                  sabablar={sabablar}
+                  imtihonId={imtihon.id}
+                  nazariyOqituvchilar={nazariyOqituvchilarRoyxati}
+                  imtihonBoshlandimi={imtihonBoshlandimi}
+                  amaliygaTaklifQilish={false}
+                  onYangilash={(oz) => yangilaUrinish(u.id, oz)}
+                  onOtkazildi={() => router.refresh()}
+                />
+              ))}
+            </div>
+          )}
+
           {nazariydanOtganlar.length > 0 && (
             <div className="space-y-3">
               <h2 className="text-sm font-semibold text-emerald-700 flex items-center gap-1.5">
@@ -538,7 +572,12 @@ function UrinishKartochka({
     <div className="card">
       <div className="flex justify-between items-start mb-1">
         <div>
-          <div className="text-lg font-bold text-slate-800">{talaba.ism_familya}</div>
+          <Link
+            href={`/talabalar/${talaba.id}`}
+            className="text-lg font-bold text-slate-800 hover:text-brand-600 hover:underline"
+          >
+            {talaba.ism_familya}
+          </Link>
           <div className="text-sm text-slate-400">
             {talaba.filiallar?.nomi} · {talaba.guruhlar?.nomi}
           </div>
@@ -791,19 +830,19 @@ function NatijaTugmalari({
             {NATIJA[natija]}
             {joriySabab && ` — ${joriySabab}`}
           </span>
-          {tahrirRuxsat && !yakunlangan && (
+          {tahrirRuxsat && (
             <button
               type="button"
               disabled={!imtihonBoshlandimi || yuklanmoqda}
               onClick={modalniOchish}
               className="btn-secondary !py-1.5 !px-3 !text-xs disabled:opacity-40 shrink-0"
             >
-              {yuklanmoqda ? "…" : "Holati"}
+              {yuklanmoqda ? "…" : yakunlangan ? "O'zgartirish" : "Holati"}
             </button>
           )}
         </div>
       </div>
-      {tahrirRuxsat && !yakunlangan && !imtihonBoshlandimi && (
+      {tahrirRuxsat && !imtihonBoshlandimi && (
         <div className="text-xs text-slate-400 mt-2">Natija belgilash uchun avval imtihonni boshlang</div>
       )}
 

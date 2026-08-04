@@ -59,7 +59,12 @@ export default function YangiTalabaForm({
     [oqituvchilar, filialId, superadminRol]
   );
   const expressToifa = toifa === "express";
-  const nazariyKerak = !expressToifa && (imtihonTuri === "nazariy" || imtihonTuri === "ikkalasi");
+  // Diqqat: Express toifadagi talabalarga ham o'qituvchi biriktirish mumkin
+  // (ixtiyoriy) — lekin ular KPI hisobiga HECH QACHON kirmaydi (bu qoida
+  // talaba.toifa === "express" tekshiruvi orqali imtihonHisob.js va
+  // statistika.js darajasida ta'minlanadi, oqituvchi biriktirilgan-
+  // biriktirilmaganidan qat'i nazar).
+  const oqituvchiTanlanadi = imtihonTuri === "nazariy" || imtihonTuri === "ikkalasi";
 
   async function yuborish(e) {
     e.preventDefault();
@@ -108,7 +113,7 @@ export default function YangiTalabaForm({
       guruh_id: guruhId,
       forma_083: forma083 === "tayyor",
       imtihon_turi: imtihonTuri,
-      nazariy_oqituvchi_id: nazariyKerak && nazariyOqituvchiId ? nazariyOqituvchiId : null,
+      nazariy_oqituvchi_id: oqituvchiTanlanadi && nazariyOqituvchiId ? nazariyOqituvchiId : null,
     };
 
     let natija;
@@ -194,13 +199,7 @@ export default function YangiTalabaForm({
         <select
           className="input"
           value={toifa}
-          onChange={(e) => {
-            const yangiToifa = e.target.value;
-            setToifa(yangiToifa);
-            if (yangiToifa === "express") {
-              setNazariyOqituvchiId("");
-            }
-          }}
+          onChange={(e) => setToifa(e.target.value)}
           required
         >
           <option value="">Tanlang</option>
@@ -210,7 +209,8 @@ export default function YangiTalabaForm({
         </select>
         {expressToifa && (
           <p className="text-xs text-slate-400 mt-1">
-            Express toifadagi talabalar o'qituvchiga va guruhga biriktirilmaydi, KPI hisobiga ham kirmaydi.
+            Express toifadagi talabalar guruhga biriktirilmaydi. O'qituvchi ixtiyoriy ravishda biriktirilishi
+            mumkin, lekin KPI hisobiga hech qachon kirmaydi.
           </p>
         )}
       </div>
@@ -300,9 +300,9 @@ export default function YangiTalabaForm({
         </select>
       </div>
 
-      {nazariyKerak && (
+      {oqituvchiTanlanadi && (
         <div>
-          <label className="label">Nazariy o'qituvchi</label>
+          <label className="label">Nazariy o'qituvchi{expressToifa ? " (ixtiyoriy, KPI hisobiga kirmaydi)" : ""}</label>
           <select
             className="input"
             value={nazariyOqituvchiId}
