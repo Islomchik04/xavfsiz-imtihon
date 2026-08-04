@@ -4,6 +4,7 @@ import KpiClient from "./KpiClient";
 
 const URINISH_SELECT = `
   talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija, created_at,
+  nazariy_urinish_raqami, amaliy_urinish_raqami,
   nazariy_oqituvchi_id,
   imtihonlar(sana),
   talabalar(toifa)

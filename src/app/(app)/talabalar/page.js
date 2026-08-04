@@ -6,7 +6,7 @@ import { talabaHolati, birUrinishdaOtganmi, qismHolati } from "@/lib/imtihonHiso
 import { telefonKorinishi } from "@/lib/telefon";
 
 const TALABA_SELECT = `
-  id, ism_familya, telefon, toifa, imtihon_turi, forma_083, hujjat_tayyor, qarzdorlik, qarzdorlik_summasi,
+  id, ism_familya, telefon, intalim_id, toifa, imtihon_turi, forma_083, hujjat_tayyor, qarzdorlik, qarzdorlik_summasi,
   filiallar(id, nomi), guruhlar(nomi)
 `;
 
@@ -17,7 +17,7 @@ export default async function TalabalarSahifa({ searchParams }) {
   const toifaFiltr = searchParams?.toifa || "";
 
   let so_rov = supabase.from("talabalar").select(TALABA_SELECT).order("created_at", { ascending: false });
-  if (q) so_rov = so_rov.ilike("ism_familya", `%${q}%`);
+  if (q) so_rov = so_rov.or(`ism_familya.ilike.%${q}%,intalim_id.ilike.%${q}%`);
   if (toifaFiltr) so_rov = so_rov.eq("toifa", toifaFiltr);
 
   const { data: talabalarXom, error } = await so_rov.limit(300);
@@ -78,8 +78,8 @@ export default async function TalabalarSahifa({ searchParams }) {
 
       <form className="card flex flex-wrap gap-3 items-end" method="get">
         <div className="flex-1 min-w-[200px]">
-          <label className="label">Ism familya bo'yicha qidirish</label>
-          <input className="input" type="text" name="q" defaultValue={q} placeholder="Masalan: Aliyev Vali" />
+          <label className="label">Ism familya yoki Int'alim ID bo'yicha qidirish</label>
+          <input className="input" type="text" name="q" defaultValue={q} placeholder="Masalan: Aliyev Vali yoki 1234567" />
         </div>
         <div className="min-w-[200px]">
           <label className="label">Holat</label>
@@ -136,6 +136,7 @@ export default async function TalabalarSahifa({ searchParams }) {
                   <Link href={`/talabalar/${t.id}`} className="font-medium text-brand-700 hover:underline">
                     {t.ism_familya}
                   </Link>
+                  {t.intalim_id && <div className="text-xs text-slate-400">ID: {t.intalim_id}</div>}
                 </td>
                 <td className="py-2.5 text-slate-500">
                   {t.telefon ? (
@@ -190,7 +191,10 @@ export default async function TalabalarSahifa({ searchParams }) {
         {royxat.map((t) => (
           <Link key={t.id} href={`/talabalar/${t.id}`} className="card block active:scale-[0.98] transition-transform">
             <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="font-semibold text-brand-700">{t.ism_familya}</div>
+              <div>
+                <div className="font-semibold text-brand-700">{t.ism_familya}</div>
+                {t.intalim_id && <div className="text-xs text-slate-400">ID: {t.intalim_id}</div>}
+              </div>
               <Badge ton={t.forma_083 ? "emerald" : "amber"}>{FORMA_083_LABEL[t.forma_083]}</Badge>
             </div>
             <div className="text-xs text-slate-400 mb-2">

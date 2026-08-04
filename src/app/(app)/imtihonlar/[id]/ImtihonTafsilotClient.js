@@ -55,7 +55,11 @@ export default function ImtihonTafsilotClient({
   const filtrlangan = useMemo(() => {
     const s = soz.trim().toLowerCase();
     if (!s) return urinishlar;
-    return urinishlar.filter((u) => u.talabalar?.ism_familya?.toLowerCase().includes(s));
+    return urinishlar.filter(
+      (u) =>
+        u.talabalar?.ism_familya?.toLowerCase().includes(s) ||
+        u.talabalar?.intalim_id?.toLowerCase().includes(s)
+    );
   }, [urinishlar, soz]);
 
   // Talaba shu imtihon doirasida boshqa (amaliy kerakli) urinishga ega
@@ -224,7 +228,7 @@ export default function ImtihonTafsilotClient({
         />
         <input
           className="input !pl-12 !text-lg !py-4"
-          placeholder="Ism familyani kiriting…"
+          placeholder="Ism familya yoki Int'alim ID kiriting…"
           value={soz}
           onChange={(e) => setSoz(e.target.value)}
           autoFocus
@@ -420,7 +424,7 @@ function TalabaQoshish({ imtihonId, mavjudTalabaIdlar, onQoshildi }) {
     const { data } = await supabase
       .from("talabalar")
       .select("id, ism_familya, imtihon_turi, hujjat_tayyor, filiallar(nomi), guruhlar(nomi)")
-      .ilike("ism_familya", `%${matn.trim()}%`)
+      .or(`ism_familya.ilike.%${matn.trim()}%,intalim_id.ilike.%${matn.trim()}%`)
       .eq("hujjat_tayyor", true)
       .limit(8);
     setQidirilmoqda(false);
@@ -483,7 +487,7 @@ function TalabaQoshish({ imtihonId, mavjudTalabaIdlar, onQoshildi }) {
           Yopish
         </button>
       </div>
-      <input className="input" placeholder="Ism familyani yozing…" value={soz} onChange={(e) => qidirish(e.target.value)} autoFocus />
+      <input className="input" placeholder="Ism familya yoki Int'alim ID…" value={soz} onChange={(e) => qidirish(e.target.value)} autoFocus />
       {qidirilmoqda && <div className="text-xs text-slate-400">Qidirilmoqda…</div>}
       {xato && <div className="text-xs text-rose-600">{xato}</div>}
       {natijalar.length > 0 && (
@@ -555,11 +559,12 @@ function UrinishKartochka({
   const [yuklanmoqdaMaydon, setYuklanmoqdaMaydon] = useState(null);
   const talaba = urinish.talabalar;
 
-  async function belgilash(natijaMaydon, natijaQiymat, sababMaydon, sababQiymat) {
+  async function belgilash(natijaMaydon, natijaQiymat, sababMaydon, sababQiymat, urinishMaydon, urinishQiymat) {
     setYuklanmoqdaMaydon(natijaMaydon);
     const supabase = supabaseBrowser();
     const oz = { [natijaMaydon]: natijaQiymat };
     if (sababMaydon) oz[sababMaydon] = sababQiymat;
+    if (urinishMaydon) oz[urinishMaydon] = urinishQiymat;
     const { error } = await supabase.from("talaba_imtihonlar").update(oz).eq("id", urinish.id);
     setYuklanmoqdaMaydon(null);
     if (!error) {
@@ -601,7 +606,9 @@ function UrinishKartochka({
             tahrirRuxsat={tahrirRuxsat}
             imtihonBoshlandimi={imtihonBoshlandimi}
             yuklanmoqda={yuklanmoqdaMaydon === "nazariy_natija"}
-            onBelgilash={(q, sababId) => belgilash("nazariy_natija", q, "nazariy_sabab_id", sababId ?? null)}
+            onBelgilash={(q, sababId, urinishRaqami) =>
+              belgilash("nazariy_natija", q, "nazariy_sabab_id", sababId ?? null, "nazariy_urinish_raqami", urinishRaqami ?? null)
+            }
           />
         )}
         {urinish.amaliy_kerak && (
@@ -615,7 +622,9 @@ function UrinishKartochka({
             tahrirRuxsat={tahrirRuxsat}
             imtihonBoshlandimi={imtihonBoshlandimi}
             yuklanmoqda={yuklanmoqdaMaydon === "amaliy_natija"}
-            onBelgilash={(q, sababId) => belgilash("amaliy_natija", q, "amaliy_sabab_id", sababId ?? null)}
+            onBelgilash={(q, sababId, urinishRaqami) =>
+              belgilash("amaliy_natija", q, "amaliy_sabab_id", sababId ?? null, "amaliy_urinish_raqami", urinishRaqami ?? null)
+            }
           />
         )}
       </div>
@@ -777,12 +786,18 @@ function NatijaTugmalari({
   // panelidan (umumiy "sabablar" ro'yxatidan) foydalanadi.
   const [sababUchun, setSababUchun] = useState(null);
   const [tanlanganSabab, setTanlanganSabab] = useState("");
+  // "O'TDI" bosilganda — nechinchi urinishda o'tganini so'raymiz (1-urinish
+  // — KPI yoziladi, 2+ — yozilmaydi).
+  const [otdiUrinishOchiq, setOtdiUrinishOchiq] = useState(false);
+  const [urinishRaqami, setUrinishRaqami] = useState("1");
 
   const joriySabab = sababId ? sabablar.find((s) => s.id === sababId)?.matn : null;
 
   function modalniOchish() {
     setSababUchun(null);
     setTanlanganSabab("");
+    setOtdiUrinishOchiq(false);
+    setUrinishRaqami("1");
     setModalOchiq(true);
   }
 
@@ -790,10 +805,23 @@ function NatijaTugmalari({
     setModalOchiq(false);
     setSababUchun(null);
     setTanlanganSabab("");
+    setOtdiUrinishOchiq(false);
+    setUrinishRaqami("1");
   }
 
   function oddiyBelgilash(qiymat) {
     onBelgilash(qiymat);
+    modalniYopish();
+  }
+
+  function otdiniOchish() {
+    setUrinishRaqami("1");
+    setOtdiUrinishOchiq((v) => !v);
+  }
+
+  function otdiniTasdiqlash() {
+    const raqam = Math.max(1, parseInt(urinishRaqami, 10) || 1);
+    onBelgilash("otdi", null, raqam);
     modalniYopish();
   }
 
@@ -871,8 +899,10 @@ function NatijaTugmalari({
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     disabled={yuklanmoqda}
-                    onClick={() => oddiyBelgilash("otdi")}
-                    className="btn !py-7 !text-lg bg-white border border-emerald-300 text-emerald-700 disabled:opacity-50"
+                    onClick={otdiniOchish}
+                    className={`btn !py-7 !text-lg ${
+                      otdiUrinishOchiq ? "bg-emerald-600 text-white" : "bg-white border border-emerald-300 text-emerald-700"
+                    } disabled:opacity-50`}
                   >
                     O'TDI
                   </button>
@@ -900,6 +930,32 @@ function NatijaTugmalari({
                     BOSHQA
                   </button>
                 </div>
+                {otdiUrinishOchiq && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 space-y-2">
+                    <label className="text-xs font-medium text-emerald-800">
+                      Necha-urinishda o'tdi? (1-urinish — KPI yoziladi, 2+ — yozilmaydi)
+                    </label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        className="input !py-2 !text-sm flex-1"
+                        value={urinishRaqami}
+                        onChange={(e) => setUrinishRaqami(e.target.value)}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        disabled={yuklanmoqda}
+                        onClick={otdiniTasdiqlash}
+                        className="btn-primary !py-2 !text-sm shrink-0 disabled:opacity-50"
+                      >
+                        Tasdiqlash
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <button
                   disabled={yuklanmoqda}
                   onClick={() => sababniOchish("chetlatildi")}

@@ -27,6 +27,7 @@ export default function YangiTalabaForm({
   const [telefon, setTelefon] = useState(
     tahrirlanayotgan?.telefon ? telefonKorinishi(tahrirlanayotgan.telefon) : ""
   );
+  const [intalimId, setIntalimId] = useState(tahrirlanayotgan?.intalim_id || "");
   const [toifa, setToifa] = useState(tahrirlanayotgan?.toifa || "");
   const [qarzdorlik, setQarzdorlik] = useState(
     tahrirlanayotgan ? (tahrirlanayotgan.qarzdorlik ? "bor" : "yoq") : "yoq"
@@ -106,6 +107,7 @@ export default function YangiTalabaForm({
     const maydonlar = {
       ism_familya: ismFamilya.trim(),
       telefon: telefonNormal,
+      intalim_id: intalimId.trim() || null,
       toifa,
       qarzdorlik: qarzdorlik === "bor",
       qarzdorlik_summasi: qarzdorlik === "bor" ? qarzdorlikSoni : null,
@@ -192,6 +194,20 @@ export default function YangiTalabaForm({
             required
           />
         </div>
+      </div>
+
+      <div>
+        <label className="label">Int'alim ID (ixtiyoriy)</label>
+        <input
+          className="input"
+          type="text"
+          value={intalimId}
+          onChange={(e) => setIntalimId(e.target.value)}
+          placeholder="Masalan: 1234567"
+        />
+        <p className="text-xs text-slate-400 mt-1">
+          Kiritilsa, talabani keyinchalik shu ID orqali ham qidirish mumkin bo'ladi.
+        </p>
       </div>
 
       <div>

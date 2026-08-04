@@ -6,7 +6,7 @@ const URINISH_SELECT = `
   id, talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija,
   nazariy_sabab_id, amaliy_sabab_id,
   talabalar!inner(
-    id, ism_familya, toifa,
+    id, ism_familya, toifa, intalim_id,
     filiallar(nomi), guruhlar(nomi),
     nazariy_oqituvchilar:oqituvchilar!nazariy_oqituvchi_id(ism_familya)
   )

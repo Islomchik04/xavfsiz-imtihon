@@ -60,6 +60,7 @@ export default function AsosiyMalumotlarCard({ talaba, tahrirRuxsat, formaMalumo
               : "Yo'q"}
           </span>
         </div>
+        <Satr label="Int'alim ID" qiymat={talaba.intalim_id} />
         <Satr label="Filial" qiymat={talaba.filiallar?.nomi} />
         <Satr label="Guruh" qiymat={talaba.guruhlar?.nomi} />
         <Satr label="Imtihon turi" qiymat={IMTIHON_TURI[talaba.imtihon_turi]} />

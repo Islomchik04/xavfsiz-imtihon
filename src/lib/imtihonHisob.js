@@ -221,7 +221,13 @@ export function oqituvchilarKpiHisoblash(urinishlar, oqituvchilar) {
     const hafta = haftaBoshi(sana);
     if (u.nazariy_kerak && (u.nazariy_natija === "otdi" || u.nazariy_natija === "otmadi")) {
       const otdimi = u.nazariy_natija === "otdi";
-      if (!(otdimi && u.nazariyUrinishRaqami > 1)) {
+      // "Nechinchi urinishda o'tgani" — avval XODIM tomonidan QO'LDA
+      // kiritilgan qiymatga (nazariy_urinish_raqami, natija "O'TDI" deb
+      // belgilanganda so'raladi) ustuvorlik beriladi; agar u bo'sh bo'lsa
+      // (eski, bu funksiya qo'shilishidan oldingi yozuvlar) — avtomatik
+      // hisoblangan tartibga (nazariyUrinishRaqami) qaytiladi.
+      const urinishRaqami = u.nazariy_urinish_raqami ?? u.nazariyUrinishRaqami;
+      if (!(otdimi && urinishRaqami > 1)) {
         qoshish(u.nazariy_oqituvchi_id, hafta, otdimi);
       }
     }
