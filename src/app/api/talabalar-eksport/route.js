@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
 import { supabaseServer } from "@/lib/supabase/server";
 import { IMTIHON_TURI, FORMA_083_LABEL, TALABA_HOLATI, TOIFALAR } from "@/lib/constants";
-import { talabaHolati, birUrinishdaOtganmi, qismHolati } from "@/lib/imtihonHisob";
+import { talabaHolati, birUrinishdaOtganmi, qismHolati, oxirgiUrinish, sanaKorinishi } from "@/lib/imtihonHisob";
 import { telefonKorinishi } from "@/lib/telefon";
 
 const TALABA_SELECT = `
@@ -32,6 +32,7 @@ export async function GET(so_rov) {
     .from("talabalar")
     .select(TALABA_SELECT)
     .eq("arxivlangan", false)
+    .eq("hujjat_tayyor", true)
     .order("created_at", { ascending: false });
   if (q) so_rovBuilder = so_rovBuilder.or(`ism_familya.ilike.%${q}%,intalim_id.ilike.%${q}%`);
   if (toifaFiltr) so_rovBuilder = so_rovBuilder.eq("toifa", toifaFiltr);
@@ -47,7 +48,7 @@ export async function GET(so_rov) {
   if (idlar.length > 0) {
     const { data: urinishlar } = await supabase
       .from("talaba_imtihonlar")
-      .select("id, talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija, created_at")
+      .select("id, talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija, created_at, imtihonlar(sana)")
       .in("talaba_id", idlar);
     for (const u of urinishlar || []) {
       if (!urinishlarMap.has(u.talaba_id)) urinishlarMap.set(u.talaba_id, []);
@@ -57,9 +58,12 @@ export async function GET(so_rov) {
 
   let royxat = talabalar.map((t) => {
     const urinishlariT = urinishlarMap.get(t.id) || [];
+    const holat = talabaHolati(urinishlariT);
+    const otganSana = holat === "otdi" ? oxirgiUrinish(urinishlariT)?.imtihonlar?.sana || null : null;
     return {
       ...t,
-      holat: talabaHolati(urinishlariT),
+      holat,
+      otganSana,
       birUrinishdaOtdi: birUrinishdaOtganmi(urinishlariT),
       nazariydanOtganmi: qismHolati(urinishlariT, "nazariy") === "otgan",
     };
@@ -88,6 +92,7 @@ export async function GET(so_rov) {
     { header: "083 forma", key: "forma083", width: 14 },
     { header: "Qarzdorlik", key: "qarzdorlik", width: 20 },
     { header: "Holat", key: "holat", width: 22 },
+    { header: "O'tgan sana", key: "otganSana", width: 14 },
   ];
   bet.getRow(1).font = { bold: true };
 
@@ -105,6 +110,7 @@ export async function GET(so_rov) {
         ? `Bor${t.qarzdorlik_summasi != null ? ` (${Number(t.qarzdorlik_summasi).toLocaleString("uz-UZ")} so'm)` : ""}`
         : "Yo'q",
       holat: `${TALABA_HOLATI[t.holat] || t.holat}${t.nazariydanOtganmi ? " · Nazariydan o'tgan" : ""}`,
+      otganSana: t.otganSana ? sanaKorinishi(t.otganSana) : "",
     });
   }
 

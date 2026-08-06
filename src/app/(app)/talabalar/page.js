@@ -2,7 +2,7 @@ import Link from "next/link";
 import { joriyFoydalanuvchi } from "@/lib/joriyFoydalanuvchi";
 import Badge from "@/components/Badge";
 import { IMTIHON_TURI, FORMA_083_LABEL, TALABA_HOLATI, TALABA_HOLATI_RANG, TOIFALAR } from "@/lib/constants";
-import { talabaHolati, birUrinishdaOtganmi, qismHolati } from "@/lib/imtihonHisob";
+import { talabaHolati, birUrinishdaOtganmi, qismHolati, oxirgiUrinish, sanaKorinishi } from "@/lib/imtihonHisob";
 import { telefonKorinishi } from "@/lib/telefon";
 
 const TALABA_SELECT = `
@@ -16,10 +16,14 @@ export default async function TalabalarSahifa({ searchParams }) {
   const holatFiltr = searchParams?.holat || "";
   const toifaFiltr = searchParams?.toifa || "";
 
+  // Hujjati hali tayyor bo'lmagan (arizalar bosqichidagi) talabalar bu
+  // ro'yxatda ko'rinmaydi — ular /arizalar bo'limida turadi va hujjatchi
+  // hujjatni tayyor deb belgilagach avtomatik shu yerga (Talabalar) o'tadi.
   let so_rov = supabase
     .from("talabalar")
     .select(TALABA_SELECT)
     .eq("arxivlangan", false)
+    .eq("hujjat_tayyor", true)
     .order("created_at", { ascending: false });
   if (q) so_rov = so_rov.or(`ism_familya.ilike.%${q}%,intalim_id.ilike.%${q}%`);
   if (toifaFiltr) so_rov = so_rov.eq("toifa", toifaFiltr);
@@ -32,7 +36,7 @@ export default async function TalabalarSahifa({ searchParams }) {
   if (idlar.length > 0) {
     const { data: urinishlar } = await supabase
       .from("talaba_imtihonlar")
-      .select("id, talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija, created_at")
+      .select("id, talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija, created_at, imtihonlar(sana)")
       .in("talaba_id", idlar);
     for (const u of urinishlar || []) {
       if (!urinishlarMap.has(u.talaba_id)) urinishlarMap.set(u.talaba_id, []);
@@ -42,9 +46,14 @@ export default async function TalabalarSahifa({ searchParams }) {
 
   let royxat = talabalar.map((t) => {
     const urinishlariT = urinishlarMap.get(t.id) || [];
+    const holat = talabaHolati(urinishlariT);
+    // "Qachon o'tgani" — talaba umumiy holati "otdi" bo'lsa, oxirgi
+    // (eng so'nggi) urinishi biriktirilgan imtihon kunini ko'rsatamiz.
+    const otganSana = holat === "otdi" ? oxirgiUrinish(urinishlariT)?.imtihonlar?.sana || null : null;
     return {
       ...t,
-      holat: talabaHolati(urinishlariT),
+      holat,
+      otganSana,
       birUrinishdaOtdi: birUrinishdaOtganmi(urinishlariT),
       nazariydanOtganmi: qismHolati(urinishlariT, "nazariy") === "otgan",
     };
@@ -89,7 +98,6 @@ export default async function TalabalarSahifa({ searchParams }) {
           <label className="label">Holat</label>
           <select className="input" name="holat" defaultValue={holatFiltr}>
             <option value="">Barchasi</option>
-            <option value="hujjat_kutilmoqda">Hujjat kutilmoqda</option>
             <option value="imtihon_yoq">Imtihonga biriktirilmagan</option>
             <option value="kutilmoqda">Natija kutilmoqda</option>
             <option value="otdi">O'tdi</option>
@@ -185,6 +193,7 @@ export default async function TalabalarSahifa({ searchParams }) {
                     <span className={`badge ${TALABA_HOLATI_RANG[t.holat]}`}>{TALABA_HOLATI[t.holat]}</span>
                     {t.nazariydanOtganmi && <span className="badge bg-emerald-100 text-emerald-700">Nazariydan o'tgan</span>}
                   </div>
+                  {t.otganSana && <div className="text-xs text-slate-400 mt-1">O'tgan sana: {sanaKorinishi(t.otganSana)}</div>}
                 </td>
               </tr>
             ))}
@@ -228,6 +237,7 @@ export default async function TalabalarSahifa({ searchParams }) {
                 </Badge>
               )}
             </div>
+            {t.otganSana && <div className="text-xs text-slate-400 mt-1.5">O'tgan sana: {sanaKorinishi(t.otganSana)}</div>}
           </Link>
         ))}
       </div>
