@@ -3,8 +3,9 @@ import { joriyFoydalanuvchi, rolgaRuxsat } from "@/lib/joriyFoydalanuvchi";
 import { TOIFALAR } from "@/lib/constants";
 import YangiTalabaArizaRoyxati from "@/components/YangiTalabaArizaRoyxati";
 import ArizaRoyxati from "./ArizaRoyxati";
+import TayyorTalabaKartochka from "./TayyorTalabaKartochka";
 
-// Bu sahifada IKKI XIL "amaliy" ariza bor:
+// Bu sahifada UCH XIL "amaliy" ariza/ro'yxat bor:
 //
 // 1) "Yangi amaliy arizalar" — Imtihon turi "Amaliy" bo'lgan YANGI
 //    talabalar (hujjat_tayyor=false) — bularga umuman nazariy imtihon
@@ -12,12 +13,19 @@ import ArizaRoyxati from "./ArizaRoyxati";
 //    o'rniga to'g'ridan-to'g'ri shu yerga tushadi. Admin/Hujjatchi/
 //    Imtihonchi/Superadmin ko'radi (xuddi /arizalar kabi).
 //
-// 2) "Amaliy imtihon so'rovlari" — Filial adminlari NAZARIYDAN O'TGAN
-//    (allaqachon Talabalar bo'limidagi) talabasini amaliy imtihonga
+// 2) "Amaliy imtihonga o'tkazish so'rovlari" — Filial adminlari NAZARIYDAN
+//    O'TGAN (allaqachon Talabalar bo'limidagi) talabasini amaliy imtihonga
 //    yuborish uchun qoldirgan so'rovi (amaliy_arizalar jadvali,
 //    amaliy_ariza_yuborish RPC'si). Faqat Hujjatchi/Imtihonchi/
 //    Superadmin tasdiqlaydi/rad etadi — Admin bu bo'limni ko'rmaydi
 //    (o'zi yuborgan so'rovning holatini talaba sahifasida ko'radi).
+//
+// 3) "Nazariydan o'tgan, amaliyga tayyor talabalar" — HAR QANDAY (ariza
+//    kutmasdan) nazariydan o'tgan, hali amaliyga biriktirilmagan talaba —
+//    Hujjatchi/Imtihonchi/Superadmin to'g'ridan-to'g'ri shu yerdan tanlab
+//    biriktirishi mumkin (amaliyga_otkazish RPC'si to'g'ridan-to'g'ri
+//    chaqiriladi). Allaqachon (2)-bo'limda kutilayotgan arizasi bor
+//    talabalar bu ro'yxatda takrorlanmaydi.
 const TALABA_SELECT = `
   id, ism_familya, telefon, intalim_id, toifa, imtihon_turi, created_at,
   filiallar(id, nomi), guruhlar(nomi),
@@ -53,11 +61,14 @@ export default async function AmaliyArizalarSahifa({ searchParams }) {
   if (toifaFiltr) yangiSo_rov = yangiSo_rov.eq("toifa", toifaFiltr);
   if (filialFiltr) yangiSo_rov = yangiSo_rov.eq("filial_id", filialFiltr);
 
-  // 2) Nazariydan o'tgan talabalar uchun amaliyga yuborish so'rovlari —
-  //    faqat Hujjatchi/Imtihonchi/Superadmin uchun yuklanadi.
+  // 2) Nazariydan o'tgan talabalar uchun amaliyga yuborish so'rovlari, va
+  //    3) har qanday nazariydan o'tgan/amaliyga tayyor talaba — faqat
+  //    Hujjatchi/Imtihonchi/Superadmin uchun yuklanadi (amaliyga_otkazish
+  //    RPC'siga to'g'ridan-to'g'ri ruxsati bor rollar).
   const otkazishSorovRuxsat = ["hujjatchi", "imtihonchi", "superadmin"].includes(profile.role);
   let otkazishSo_rovlar = [];
   let aktivImtihonlar = [];
+  let tayyorTalabalar = [];
 
   const [{ data: yangiXom, error }, otkazishNatija] = await Promise.all([
     yangiSo_rov.limit(300),
@@ -75,15 +86,51 @@ export default async function AmaliyArizalarSahifa({ searchParams }) {
             .eq("holati", "kutilmoqda")
             .order("created_at", { ascending: false });
           if (filialFiltr) otkazishSo_rov = otkazishSo_rov.eq("talabalar.filial_id", filialFiltr);
-          const [{ data: arizalarData }, { data: imtihonlarData }] = await Promise.all([
+
+          // Nazariy o'tgan/amaliy_kerak yo'q — barcha urinishlarni yig'ib,
+          // JS tomonda talaba bo'yicha aniqlaymiz (xuddi ImtihonTafsilotClient.js
+          // dagi amaliygaTayyormi() mantig'i, lekin GLOBAL — bitta imtihonga
+          // cheklanmagan holda).
+          let tayyorSo_rov = supabase
+            .from("talaba_imtihonlar")
+            .select(
+              `
+              talaba_id, nazariy_kerak, nazariy_natija, amaliy_kerak,
+              talabalar!inner(id, ism_familya, intalim_id, toifa, filial_id, hujjat_tayyor, arxivlangan, filiallar(nomi), guruhlar(nomi))
+            `
+            )
+            .eq("talabalar.hujjat_tayyor", true)
+            .eq("talabalar.arxivlangan", false)
+            .neq("talabalar.toifa", "express");
+          if (filialFiltr) tayyorSo_rov = tayyorSo_rov.eq("talabalar.filial_id", filialFiltr);
+          if (toifaFiltr) tayyorSo_rov = tayyorSo_rov.eq("talabalar.toifa", toifaFiltr);
+          if (q) tayyorSo_rov = tayyorSo_rov.or(`ism_familya.ilike.%${q}%,intalim_id.ilike.%${q}%`, { foreignTable: "talabalar" });
+
+          const [{ data: arizalarData }, { data: imtihonlarData }, { data: urinishlarXom }] = await Promise.all([
             otkazishSo_rov,
             supabase
               .from("imtihonlar")
               .select("id, sana, izoh, holati")
               .in("holati", ["boshlanmagan", "boshlangan"])
               .order("sana", { ascending: false }),
+            tayyorSo_rov,
           ]);
-          return { arizalar: arizalarData || [], imtihonlar: imtihonlarData || [] };
+
+          const holatMap = new Map();
+          for (const u of urinishlarXom || []) {
+            const id = u.talaba_id;
+            if (!holatMap.has(id)) holatMap.set(id, { talaba: u.talabalar, nazariyOtdi: false, amaliyBor: false });
+            const rec = holatMap.get(id);
+            if (u.nazariy_kerak && u.nazariy_natija === "otdi") rec.nazariyOtdi = true;
+            if (u.amaliy_kerak) rec.amaliyBor = true;
+          }
+          const arizaBorTalabalar = new Set((arizalarData || []).map((a) => a.talabalar?.id));
+          const tayyor = Array.from(holatMap.values())
+            .filter((r) => r.nazariyOtdi && !r.amaliyBor && !arizaBorTalabalar.has(r.talaba.id))
+            .map((r) => r.talaba)
+            .sort((a, b) => a.ism_familya.localeCompare(b.ism_familya, "uz"));
+
+          return { arizalar: arizalarData || [], imtihonlar: imtihonlarData || [], tayyor };
         })()
       : Promise.resolve(null),
   ]);
@@ -92,6 +139,7 @@ export default async function AmaliyArizalarSahifa({ searchParams }) {
   if (otkazishNatija) {
     otkazishSo_rovlar = otkazishNatija.arizalar;
     aktivImtihonlar = otkazishNatija.imtihonlar;
+    tayyorTalabalar = otkazishNatija.tayyor;
   }
 
   return (
@@ -99,7 +147,8 @@ export default async function AmaliyArizalarSahifa({ searchParams }) {
       <div>
         <h1 className="text-xl font-bold text-slate-800">🚗 Amaliy imtihon arizalari</h1>
         <p className="text-sm text-slate-500 mt-0.5">
-          Imtihon turi "Amaliy" bo'lgan yangi talabalar va nazariydan o'tganlarni amaliy imtihonga yuborish so'rovlari.
+          Imtihon turi "Amaliy" bo'lgan yangi talabalar, nazariydan o'tganlarni amaliy imtihonga yuborish so'rovlari
+          va amaliyga tayyor barcha talabalar.
         </p>
       </div>
 
@@ -147,6 +196,28 @@ export default async function AmaliyArizalarSahifa({ searchParams }) {
             Filial adminlari nazariydan o'tgan talabalarni amaliy imtihonga yuborish uchun qoldirgan so'rovlari.
           </p>
           <ArizaRoyxati arizalar={otkazishSo_rovlar} aktivImtihonlar={aktivImtihonlar} />
+        </div>
+      )}
+
+      {otkazishSorovRuxsat && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-800">
+            ✅ Nazariydan o'tgan, amaliyga tayyor talabalar{" "}
+            <span className="text-sm font-normal text-slate-500">({tayyorTalabalar.length} ta)</span>
+          </h2>
+          <p className="text-sm text-slate-500 -mt-2">
+            Ariza kutmasdan — barcha nazariydan o'tgan, hali amaliy imtihonga biriktirilmagan talabalar. Bu yerdan
+            to'g'ridan-to'g'ri tanlangan imtihonga biriktirishingiz mumkin.
+          </p>
+          {tayyorTalabalar.length === 0 ? (
+            <div className="card text-sm text-slate-400">Hozircha bunday talaba yo'q.</div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 xi-stagger">
+              {tayyorTalabalar.map((t) => (
+                <TayyorTalabaKartochka key={t.id} talaba={t} aktivImtihonlar={aktivImtihonlar} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
