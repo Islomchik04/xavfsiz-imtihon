@@ -22,9 +22,16 @@ function qismlarNatijasi(u) {
   return "otdi";
 }
 
+// talabalar: har birida hujjat_tayyor va arxivlangan bo'lishi kutiladi.
+// Uch alohida "guruh" aniq ajratiladi — arizalar (hujjat_tayyor=false,
+// arxivlanmagan), faol talabalar (hujjat_tayyor=true, arxivlanmagan) va
+// arxiv (arxivlangan=true) — dashboarddagi raqamlar chalkash bo'lmasligi
+// uchun bular endi ALOHIDA sanaladi, bir-biriga aralashtirilmaydi.
 export function umumiyStatistika(talabalar, urinishlar) {
-  const jami = talabalar.length;
-  const hujjatTayyor = talabalar.filter((t) => t.hujjat_tayyor).length;
+  const faollar = talabalar.filter((t) => !t.arxivlangan);
+  const arizalar = faollar.filter((t) => !t.hujjat_tayyor).length;
+  const hujjatTayyor = faollar.length - arizalar;
+  const arxiv = talabalar.filter((t) => t.arxivlangan).length;
 
   const nazariyHisob = { jami: 0, otdi: 0, otmadi: 0, kutilmoqda: 0 };
   const amaliyHisob = { jami: 0, otdi: 0, otmadi: 0, kutilmoqda: 0 };
@@ -41,33 +48,44 @@ export function umumiyStatistika(talabalar, urinishlar) {
   }
 
   return {
-    jami,
+    // "jami" — faqat FAOL (hujjat tayyor va arxivlanmagan) talabalar soni,
+    // ya'ni aynan "Talabalar" bo'limida ko'rinadigan son.
+    jami: hujjatTayyor,
     hujjatTayyor,
-    hujjatKutilmoqda: jami - hujjatTayyor,
+    arizalar,
+    // Eski nom — orqaga moslik uchun saqlanadi (arizalar bilan bir xil qiymat).
+    hujjatKutilmoqda: arizalar,
+    arxiv,
     nazariy: nazariyHisob,
     amaliy: amaliyHisob,
   };
 }
 
+// Filial bo'yicha jamlanma — "jami"/"hujjatTayyor" faqat FAOL (arxivlanmagan)
+// talabalarni hisoblaydi, arizalar (hujjat_tayyor=false) va arxiv alohida
+// ustunlarda ko'rsatiladi — dashboarddagi umumiy son bilan bir xil mantiq.
 export function filialBoyichaStatistika(talabalar, urinishlar) {
   const guruh = new Map();
-  for (const t of talabalar) {
-    const nomi = t.filiallar?.nomi || "Noma'lum";
+  function olish(nomi) {
     if (!guruh.has(nomi)) {
-      guruh.set(nomi, { nomi, jami: 0, hujjatTayyor: 0, otdi: 0, otmadi: 0 });
+      guruh.set(nomi, { nomi, jami: 0, hujjatTayyor: 0, arizalar: 0, arxiv: 0, otdi: 0, otmadi: 0 });
     }
-    const yozuv = guruh.get(nomi);
+    return guruh.get(nomi);
+  }
+  for (const t of talabalar) {
+    const yozuv = olish(t.filiallar?.nomi || "Noma'lum");
+    if (t.arxivlangan) {
+      yozuv.arxiv += 1;
+      continue;
+    }
     yozuv.jami += 1;
     if (t.hujjat_tayyor) yozuv.hujjatTayyor += 1;
+    else yozuv.arizalar += 1;
   }
 
   for (const u of urinishlar) {
-    const nomi = u.talabalar?.filiallar?.nomi || "Noma'lum";
-    if (!guruh.has(nomi)) {
-      guruh.set(nomi, { nomi, jami: 0, hujjatTayyor: 0, otdi: 0, otmadi: 0 });
-    }
+    const yozuv = olish(u.talabalar?.filiallar?.nomi || "Noma'lum");
     const natija = qismlarNatijasi(u);
-    const yozuv = guruh.get(nomi);
     if (natija === "otdi") yozuv.otdi += 1;
     else if (natija === "otmadi") yozuv.otmadi += 1;
   }

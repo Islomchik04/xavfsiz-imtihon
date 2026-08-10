@@ -72,15 +72,18 @@ const LUGAT = {
   // --- Dashboard -----------------------------------------------------------
   sarlavha_statistika: { uz: "Statistika", uzk: "Статистика", ru: "Статистика" },
   jami_royxatga_olingan: {
-    uz: "Jami ro'yxatga olingan",
-    uzk: "Жами рўйхатга олинган",
-    ru: "Всего зарегистрировано",
+    uz: "Faol talabalar",
+    uzk: "Фаол талабалар",
+    ru: "Активные студенты",
   },
+  dashboard_yangi_arizalar: { uz: "Yangi arizalar", uzk: "Янги аризалар", ru: "Новые заявки" },
+  dashboard_arxivlangan: { uz: "Arxivlangan (prava oldi)", uzk: "Архивланган (права олди)", ru: "В архиве (получили права)" },
   hujjat_tayyor: { uz: "Hujjat tayyor", uzk: "Ҳужжат тайёр", ru: "Документ готов" },
   batafsil_hisobotlar: { uz: "Batafsil hisobotlar", uzk: "Батафсил ҳисоботлар", ru: "Подробные отчёты" },
-  davr_kunlik: { uz: "Kunlik", uzk: "Кунлик", ru: "За день" },
+  davr_kunlik: { uz: "Bugun", uzk: "Бугун", ru: "Сегодня" },
   davr_haftalik: { uz: "Haftalik", uzk: "Ҳафталик", ru: "За неделю" },
   davr_oylik: { uz: "Oylik", uzk: "Ойлик", ru: "За месяц" },
+  davr_sana: { uz: "Sana tanlash", uzk: "Сана танлаш", ru: "Выбрать дату" },
   eng_kop_yiqilgan: {
     uz: "Eng ko'p yiqilgan o'qituvchi",
     uzk: "Энг кўп йиқилган ўқитувчи",

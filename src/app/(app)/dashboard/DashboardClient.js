@@ -17,6 +17,7 @@ const DAVRLAR = [
   { key: "kun", label: "davr_kunlik" },
   { key: "hafta", label: "davr_haftalik" },
   { key: "oy", label: "davr_oylik" },
+  { key: "sana", label: "davr_sana" },
 ];
 
 export default function DashboardClient({ profile, talabalar, urinishlar, barchaFiliallarniKorish }) {
@@ -26,6 +27,10 @@ export default function DashboardClient({ profile, talabalar, urinishlar, barcha
   const bugun = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const joriyHafta = haftaBoshi(bugun);
   const joriyOy = oyKaliti(bugun);
+  // "Sana tanlash" tabida foydalanuvchi ISTALGAN kunni tanlab, aynan shu
+  // kunga tegishli imtihon natijalarini ko'ra oladi (faqat "bugun" bilan
+  // cheklanmagan holda).
+  const [tanlanganSana, setTanlanganSana] = useState(bugun);
 
   const davrFiltrlanganUrinishlar = useMemo(() => {
     if (davr === "hammasi") return urinishlar;
@@ -33,11 +38,12 @@ export default function DashboardClient({ profile, talabalar, urinishlar, barcha
       const sana = u.imtihonlar?.sana;
       if (!sana) return false;
       if (davr === "kun") return sana === bugun;
+      if (davr === "sana") return sana === tanlanganSana;
       if (davr === "hafta") return haftaBoshi(sana) === joriyHafta;
       if (davr === "oy") return oyKaliti(sana) === joriyOy;
       return true;
     });
-  }, [urinishlar, davr, bugun, joriyHafta, joriyOy]);
+  }, [urinishlar, davr, bugun, tanlanganSana, joriyHafta, joriyOy]);
 
   const stat = umumiyStatistika(talabalar, davrFiltrlanganUrinishlar);
   const filiallar = filialBoyichaStatistika(talabalar, davrFiltrlanganUrinishlar);
@@ -71,28 +77,55 @@ export default function DashboardClient({ profile, talabalar, urinishlar, barcha
         </Link>
       </div>
 
-      <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-fit">
-        {DAVRLAR.map((d) => (
-          <button
-            key={d.key}
-            onClick={() => setDavr(d.key)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              davr === d.key ? "bg-white shadow-sm text-brand-700" : "text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            {t(d.label)}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-fit">
+          {DAVRLAR.map((d) => (
+            <button
+              key={d.key}
+              onClick={() => setDavr(d.key)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                davr === d.key ? "bg-white shadow-sm text-brand-700" : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              {t(d.label)}
+            </button>
+          ))}
+        </div>
+        {davr === "sana" && (
+          <input
+            type="date"
+            className="input !w-auto"
+            value={tanlanganSana}
+            onChange={(e) => setTanlanganSana(e.target.value)}
+          />
+        )}
+        {davr === "sana" && (
+          <span className="text-xs text-slate-400">
+            {davrFiltrlanganUrinishlar.length} ta natija — {sanaKorinishi(tanlanganSana)}
+          </span>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Talabalar holati bo'yicha ANIQ va bir-biridan ajratilgan sonlar —
+          "Faol talabalar" (Talabalar bo'limidagilar), "Yangi arizalar"
+          (hujjatchi ko'rib chiqishi kerak) va "Arxivlangan" (prava olganlar)
+          hech qachon bir-biriga aralashmaydi. */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <StatTile label={t("jami_royxatga_olingan")} value={stat.jami} accent="blue" />
-        <StatTile
-          label={t("hujjat_tayyor")}
-          value={stat.hujjatTayyor}
-          accent="amber"
-          sub={`${stat.hujjatKutilmoqda} ta kutilmoqda`}
-        />
+        <Link href="/arizalar" className="block">
+          <StatTile
+            label={t("dashboard_yangi_arizalar")}
+            value={stat.arizalar}
+            accent={stat.arizalar > 0 ? "rose" : "amber"}
+            sub={stat.arizalar > 0 ? "Ko'rib chiqish kerak →" : "Hozircha yo'q"}
+          />
+        </Link>
+        <Link href="/arxiv" className="block">
+          <StatTile label={t("dashboard_arxivlangan")} value={stat.arxiv} accent="slate" sub="Arxivni ko'rish →" />
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         <StatTile
           label="Nazariy: o'tdi"
           value={stat.nazariy.otdi}
@@ -155,8 +188,9 @@ export default function DashboardClient({ profile, talabalar, urinishlar, barcha
               <thead>
                 <tr className="text-left text-slate-400 border-b border-slate-100">
                   <th className="pb-2 font-medium">Filial</th>
-                  <th className="pb-2 font-medium text-right">Jami</th>
-                  <th className="pb-2 font-medium text-right">Hujjat tayyor</th>
+                  <th className="pb-2 font-medium text-right">Faol talabalar</th>
+                  <th className="pb-2 font-medium text-right">Yangi arizalar</th>
+                  <th className="pb-2 font-medium text-right">Arxiv</th>
                   <th className="pb-2 font-medium text-right">O'tdi</th>
                   <th className="pb-2 font-medium text-right">O'tmadi</th>
                 </tr>
@@ -166,7 +200,14 @@ export default function DashboardClient({ profile, talabalar, urinishlar, barcha
                   <tr key={f.nomi} className="border-b border-slate-50 last:border-0">
                     <td className="py-2.5 font-medium text-slate-700">{f.nomi}</td>
                     <td className="py-2.5 text-right">{f.jami}</td>
-                    <td className="py-2.5 text-right">{f.hujjatTayyor}</td>
+                    <td className="py-2.5 text-right">
+                      {f.arizalar > 0 ? (
+                        <span className="text-rose-600 font-medium">{f.arizalar}</span>
+                      ) : (
+                        <span className="text-slate-400">0</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 text-right text-slate-500">{f.arxiv}</td>
                     <td className="py-2.5 text-right text-emerald-600 font-medium">{f.otdi}</td>
                     <td className="py-2.5 text-right text-rose-600 font-medium">{f.otmadi}</td>
                   </tr>
@@ -179,8 +220,11 @@ export default function DashboardClient({ profile, talabalar, urinishlar, barcha
               <div key={f.nomi} className="border border-slate-100 dark:border-slate-800 rounded-xl p-3">
                 <div className="font-medium text-slate-700 mb-1.5">{f.nomi}</div>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
-                  <span>Jami: <strong className="text-slate-700">{f.jami}</strong></span>
-                  <span>Hujjat: <strong className="text-slate-700">{f.hujjatTayyor}</strong></span>
+                  <span>Faol: <strong className="text-slate-700">{f.jami}</strong></span>
+                  <span className={f.arizalar > 0 ? "text-rose-600" : ""}>
+                    Arizalar: <strong>{f.arizalar}</strong>
+                  </span>
+                  <span>Arxiv: <strong className="text-slate-700">{f.arxiv}</strong></span>
                   <span className="text-emerald-600">O'tdi: <strong>{f.otdi}</strong></span>
                   <span className="text-rose-600">O'tmadi: <strong>{f.otmadi}</strong></span>
                 </div>

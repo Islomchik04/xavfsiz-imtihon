@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { joriyFoydalanuvchi } from "@/lib/joriyFoydalanuvchi";
 import DashboardClient from "./DashboardClient";
 
-const TALABA_SELECT = `id, hujjat_tayyor, filial_id, filiallar(nomi)`;
+const TALABA_SELECT = `id, hujjat_tayyor, arxivlangan, filial_id, filiallar(nomi)`;
 
 const URINISH_SELECT = `
   nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija,
