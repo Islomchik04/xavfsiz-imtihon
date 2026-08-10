@@ -1,13 +1,22 @@
 import Link from "next/link";
-import { joriyFoydalanuvchi } from "@/lib/joriyFoydalanuvchi";
+import { joriyFoydalanuvchi, rolgaRuxsat } from "@/lib/joriyFoydalanuvchi";
 import Badge from "@/components/Badge";
 import { IMTIHON_TURI, FORMA_083_LABEL, TALABA_HOLATI, TALABA_HOLATI_RANG, TOIFALAR } from "@/lib/constants";
 import { talabaHolati, birUrinishdaOtganmi, qismHolati, oxirgiUrinish, sanaKorinishi } from "@/lib/imtihonHisob";
 import { telefonKorinishi } from "@/lib/telefon";
+import { guruhBoyichaSaralash } from "@/lib/saralash";
+import RadEtilganArizalarRoyxati from "@/components/RadEtilganArizalarRoyxati";
 
 const TALABA_SELECT = `
   id, ism_familya, telefon, intalim_id, toifa, imtihon_turi, forma_083, hujjat_tayyor, qarzdorlik, qarzdorlik_summasi,
   filiallar(id, nomi), guruhlar(nomi)
+`;
+
+const RAD_ETILGAN_SELECT = `
+  id, ism_familya, telefon, intalim_id, toifa, imtihon_turi, rad_izoh, rad_vaqt,
+  filiallar(id, nomi), guruhlar(nomi),
+  rad_sabab:sabablar!rad_sabab_id(matn),
+  rad_etgan_profil:profiles!rad_etgan(ism_familya)
 `;
 
 export default async function TalabalarSahifa({ searchParams }) {
@@ -15,55 +24,87 @@ export default async function TalabalarSahifa({ searchParams }) {
   const q = searchParams?.q?.trim() || "";
   const holatFiltr = searchParams?.holat || "";
   const toifaFiltr = searchParams?.toifa || "";
+  const guruhFiltr = searchParams?.guruh || "";
+  const tartibFiltr = searchParams?.tartib || "";
+  // "Rad etilgan" — bular hujjat_tayyor=false (arizasi hujjatchi tomonidan
+  // rad etilgan) talabalar, shuning uchun oddiy ro'yxatdan (hujjat_tayyor=true)
+  // butunlay boshqacha so'rov va ko'rinish talab qiladi.
+  const radRejimi = holatFiltr === "rad_etilgan";
 
-  // Hujjati hali tayyor bo'lmagan (arizalar bosqichidagi) talabalar bu
-  // ro'yxatda ko'rinmaydi — ular /arizalar bo'limida turadi va hujjatchi
-  // hujjatni tayyor deb belgilagach avtomatik shu yerga (Talabalar) o'tadi.
-  let so_rov = supabase
-    .from("talabalar")
-    .select(TALABA_SELECT)
-    .eq("arxivlangan", false)
-    .eq("hujjat_tayyor", true)
-    .order("created_at", { ascending: false });
-  if (q) so_rov = so_rov.or(`ism_familya.ilike.%${q}%,intalim_id.ilike.%${q}%`);
-  if (toifaFiltr) so_rov = so_rov.eq("toifa", toifaFiltr);
+  // Guruh filiallararo bo'lishi mumkin — filial bo'yicha cheklamasdan
+  // barcha faol guruhlarni ko'rsatamiz.
+  const { data: guruhlar } = await supabase.from("guruhlar").select("id, nomi").eq("faol", true).order("nomi");
 
-  const { data: talabalarXom, error } = await so_rov.limit(300);
-  const talabalar = talabalarXom || [];
+  let royxat = [];
+  let radEtilganRoyxat = [];
+  let error = null;
 
-  const idlar = talabalar.map((t) => t.id);
-  let urinishlarMap = new Map();
-  if (idlar.length > 0) {
-    const { data: urinishlar } = await supabase
-      .from("talaba_imtihonlar")
-      .select("id, talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija, created_at, imtihonlar(sana)")
-      .in("talaba_id", idlar);
-    for (const u of urinishlar || []) {
-      if (!urinishlarMap.has(u.talaba_id)) urinishlarMap.set(u.talaba_id, []);
-      urinishlarMap.get(u.talaba_id).push(u);
+  if (radRejimi) {
+    let radSo_rov = supabase
+      .from("talabalar")
+      .select(RAD_ETILGAN_SELECT)
+      .eq("arxivlangan", false)
+      .eq("rad_etildi", true)
+      .order("rad_vaqt", { ascending: false });
+    if (q) radSo_rov = radSo_rov.or(`ism_familya.ilike.%${q}%,intalim_id.ilike.%${q}%`);
+    if (toifaFiltr) radSo_rov = radSo_rov.eq("toifa", toifaFiltr);
+    if (guruhFiltr) radSo_rov = radSo_rov.eq("guruh_id", guruhFiltr);
+    const { data: radXom, error: radXato } = await radSo_rov.limit(300);
+    radEtilganRoyxat = tartibFiltr === "guruh" ? guruhBoyichaSaralash(radXom || []) : radXom || [];
+    error = radXato;
+  } else {
+    // Hujjati hali tayyor bo'lmagan (arizalar bosqichidagi) talabalar bu
+    // ro'yxatda ko'rinmaydi — ular /arizalar bo'limida turadi va hujjatchi
+    // hujjatni tayyor deb belgilagach avtomatik shu yerga (Talabalar) o'tadi.
+    let so_rov = supabase
+      .from("talabalar")
+      .select(TALABA_SELECT)
+      .eq("arxivlangan", false)
+      .eq("hujjat_tayyor", true)
+      .order("created_at", { ascending: false });
+    if (q) so_rov = so_rov.or(`ism_familya.ilike.%${q}%,intalim_id.ilike.%${q}%`);
+    if (toifaFiltr) so_rov = so_rov.eq("toifa", toifaFiltr);
+    if (guruhFiltr) so_rov = so_rov.eq("guruh_id", guruhFiltr);
+
+    const { data: talabalarXom, error: xato } = await so_rov.limit(300);
+    error = xato;
+    const talabalar = talabalarXom || [];
+
+    const idlar = talabalar.map((t) => t.id);
+    let urinishlarMap = new Map();
+    if (idlar.length > 0) {
+      const { data: urinishlar } = await supabase
+        .from("talaba_imtihonlar")
+        .select("id, talaba_id, nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija, created_at, imtihonlar(sana)")
+        .in("talaba_id", idlar);
+      for (const u of urinishlar || []) {
+        if (!urinishlarMap.has(u.talaba_id)) urinishlarMap.set(u.talaba_id, []);
+        urinishlarMap.get(u.talaba_id).push(u);
+      }
     }
-  }
 
-  let royxat = talabalar.map((t) => {
-    const urinishlariT = urinishlarMap.get(t.id) || [];
-    const holat = talabaHolati(urinishlariT);
-    // "Qachon o'tgani" — talaba umumiy holati "otdi" bo'lsa, oxirgi
-    // (eng so'nggi) urinishi biriktirilgan imtihon kunini ko'rsatamiz.
-    const otganSana = holat === "otdi" ? oxirgiUrinish(urinishlariT)?.imtihonlar?.sana || null : null;
-    return {
-      ...t,
-      holat,
-      otganSana,
-      birUrinishdaOtdi: birUrinishdaOtganmi(urinishlariT),
-      nazariydanOtganmi: qismHolati(urinishlariT, "nazariy") === "otgan",
-    };
-  });
-  if (holatFiltr === "bir_urinishda_otgan") {
-    royxat = royxat.filter((t) => t.birUrinishdaOtdi);
-  } else if (holatFiltr === "nazariydan_otgan") {
-    royxat = royxat.filter((t) => t.nazariydanOtganmi);
-  } else if (holatFiltr) {
-    royxat = royxat.filter((t) => t.holat === holatFiltr);
+    royxat = talabalar.map((t) => {
+      const urinishlariT = urinishlarMap.get(t.id) || [];
+      const holat = talabaHolati(urinishlariT);
+      // "Qachon o'tgani" — talaba umumiy holati "otdi" bo'lsa, oxirgi
+      // (eng so'nggi) urinishi biriktirilgan imtihon kunini ko'rsatamiz.
+      const otganSana = holat === "otdi" ? oxirgiUrinish(urinishlariT)?.imtihonlar?.sana || null : null;
+      return {
+        ...t,
+        holat,
+        otganSana,
+        birUrinishdaOtdi: birUrinishdaOtganmi(urinishlariT),
+        nazariydanOtganmi: qismHolati(urinishlariT, "nazariy") === "otgan",
+      };
+    });
+    if (holatFiltr === "bir_urinishda_otgan") {
+      royxat = royxat.filter((t) => t.birUrinishdaOtdi);
+    } else if (holatFiltr === "nazariydan_otgan") {
+      royxat = royxat.filter((t) => t.nazariydanOtganmi);
+    } else if (holatFiltr) {
+      royxat = royxat.filter((t) => t.holat === holatFiltr);
+    }
+    if (tartibFiltr === "guruh") royxat = guruhBoyichaSaralash(royxat);
   }
 
   return (
@@ -107,6 +148,7 @@ export default async function TalabalarSahifa({ searchParams }) {
             <option value="chetlatildi">Chetlatildi (qayta imtihon kerak)</option>
             <option value="bir_urinishda_otgan">Bitta urinishda o'tganlar</option>
             <option value="nazariydan_otgan">Nazariydan o'tganlar</option>
+            <option value="rad_etilgan">Rad etilgan arizalar</option>
           </select>
         </div>
         <div className="min-w-[160px]">
@@ -118,22 +160,50 @@ export default async function TalabalarSahifa({ searchParams }) {
             ))}
           </select>
         </div>
+        <div className="min-w-[160px]">
+          <label className="label">Guruh</label>
+          <select className="input" name="guruh" defaultValue={guruhFiltr}>
+            <option value="">Barchasi</option>
+            {(guruhlar || []).map((g) => (
+              <option key={g.id} value={g.id}>{g.nomi}</option>
+            ))}
+          </select>
+        </div>
+        <div className="min-w-[160px]">
+          <label className="label">Saralash</label>
+          <select className="input" name="tartib" defaultValue={tartibFiltr}>
+            <option value="">Sana (yangi birinchi)</option>
+            <option value="guruh">Guruh (A-Z)</option>
+          </select>
+        </div>
         <button className="btn-secondary" type="submit">Qidirish</button>
       </form>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-500">
-          <span className="font-semibold text-slate-700">{royxat.length}</span> ta natija topildi
+          <span className="font-semibold text-slate-700">{radRejimi ? radEtilganRoyxat.length : royxat.length}</span> ta natija topildi
         </p>
-        <a
-          href={`/api/talabalar-eksport?${new URLSearchParams({ q, holat: holatFiltr, toifa: toifaFiltr })}`}
-          className="btn-secondary !py-2 !text-sm"
-        >
-          📊 Excel yuklab olish
-        </a>
+        {!radRejimi && (
+          <a
+            href={`/api/talabalar-eksport?${new URLSearchParams({ q, holat: holatFiltr, toifa: toifaFiltr, guruh: guruhFiltr, tartib: tartibFiltr })}`}
+            className="btn-secondary !py-2 !text-sm"
+          >
+            📊 Excel yuklab olish
+          </a>
+        )}
       </div>
 
       {error && <div className="card text-rose-600">Xatolik: {error.message}</div>}
+
+      {radRejimi && (
+        <RadEtilganArizalarRoyxati
+          royxat={radEtilganRoyxat}
+          qaytarishRuxsat={rolgaRuxsat(profile, ["superadmin"])}
+        />
+      )}
+
+      {!radRejimi && (
+        <>
 
       {/* Kompyuter/planshet: jadval ko'rinishi */}
       <div className="card overflow-x-auto hidden md:block">
@@ -241,6 +311,8 @@ export default async function TalabalarSahifa({ searchParams }) {
           </Link>
         ))}
       </div>
+        </>
+      )}
     </div>
   );
 }

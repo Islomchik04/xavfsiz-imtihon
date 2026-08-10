@@ -6,6 +6,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { IMTIHON_TURI, FORMA_083_LABEL, TOIFALAR } from "@/lib/constants";
 import { guruhIdTop } from "@/lib/guruh";
 import { telefonNormallash, telefonKorinishi } from "@/lib/telefon";
+import { sanaKorinishi } from "@/lib/imtihonHisob";
 
 // markaziyRol: hujjatchi va superadmin filialni o'zi tanlaydi (istalgan
 // filialga talaba qo'sha oladi); admin faqat o'z filialiga qo'shadi.
@@ -14,6 +15,7 @@ export default function YangiTalabaForm({
   profile,
   filiallar,
   oqituvchilar, // [{id, ism_familya, turi, filiallar: [filial_id, ...]}]
+  imtihonlar = [], // [{id, sana, izoh}] — hali yakunlanmagan imtihonlar, "so'ralgan imtihon" tanlash uchun
   tahrirlanayotgan, // agar berilsa — tahrirlash rejimi (mavjud talabani yangilaydi)
 }) {
   const router = useRouter();
@@ -42,6 +44,9 @@ export default function YangiTalabaForm({
   const [imtihonTuri, setImtihonTuri] = useState(tahrirlanayotgan?.imtihon_turi || "");
   const [nazariyOqituvchiId, setNazariyOqituvchiId] = useState(
     tahrirlanayotgan?.nazariy_oqituvchi_id || ""
+  );
+  const [istalganImtihonId, setIstalganImtihonId] = useState(
+    tahrirlanayotgan?.istalgan_imtihon_id || ""
   );
   const [xato, setXato] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
@@ -140,6 +145,7 @@ export default function YangiTalabaForm({
       forma_083: forma083 === "tayyor",
       imtihon_turi: imtihonTuri,
       nazariy_oqituvchi_id: oqituvchiTanlanadi && nazariyOqituvchiId ? nazariyOqituvchiId : null,
+      istalgan_imtihon_id: istalganImtihonId || null,
     };
 
     let natija;
@@ -338,6 +344,29 @@ export default function YangiTalabaForm({
             <option key={k} value={k}>{v}</option>
           ))}
         </select>
+      </div>
+
+      <div>
+        <label className="label">Qaysi imtihon uchun (ixtiyoriy)</label>
+        <select
+          className="input"
+          value={istalganImtihonId}
+          onChange={(e) => setIstalganImtihonId(e.target.value)}
+        >
+          <option value="">Tanlanmagan</option>
+          {imtihonlar.map((i) => (
+            <option key={i.id} value={i.id}>
+              {sanaKorinishi(i.sana)} {i.izoh ? `— ${i.izoh}` : ""}
+            </option>
+          ))}
+        </select>
+        {imtihonlar.length === 0 ? (
+          <p className="text-xs text-slate-400 mt-1">Hozircha yaratilgan imtihon yo'q.</p>
+        ) : (
+          <p className="text-xs text-slate-400 mt-1">
+            Talaba shu imtihonga yuborilishini xohlasangiz tanlang — hujjatchi hujjatni tayyorlashda buni ko'radi.
+          </p>
+        )}
       </div>
 
       {oqituvchiTanlanadi && (

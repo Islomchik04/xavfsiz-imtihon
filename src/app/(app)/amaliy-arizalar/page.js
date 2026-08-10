@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { joriyFoydalanuvchi, rolgaRuxsat } from "@/lib/joriyFoydalanuvchi";
 import { TOIFALAR } from "@/lib/constants";
+import { guruhBoyichaSaralash } from "@/lib/saralash";
 import YangiTalabaArizaRoyxati from "@/components/YangiTalabaArizaRoyxati";
+import RadEtilganArizalarRoyxati from "@/components/RadEtilganArizalarRoyxati";
 import ArizaRoyxati from "./ArizaRoyxati";
 import TayyorTalabaKartochka from "./TayyorTalabaKartochka";
 
@@ -29,7 +31,15 @@ import TayyorTalabaKartochka from "./TayyorTalabaKartochka";
 const TALABA_SELECT = `
   id, ism_familya, telefon, intalim_id, toifa, imtihon_turi, created_at,
   filiallar(id, nomi), guruhlar(nomi),
-  qoshgan_profil:profiles!qoshgan(ism_familya)
+  qoshgan_profil:profiles!qoshgan(ism_familya),
+  istalgan_imtihon:imtihonlar!istalgan_imtihon_id(sana, izoh)
+`;
+
+const RAD_ETILGAN_SELECT = `
+  id, ism_familya, telefon, intalim_id, toifa, imtihon_turi, rad_izoh, rad_vaqt,
+  filiallar(id, nomi), guruhlar(nomi),
+  rad_sabab:sabablar!rad_sabab_id(matn),
+  rad_etgan_profil:profiles!rad_etgan(ism_familya)
 `;
 
 export default async function AmaliyArizalarSahifa({ searchParams }) {
@@ -42,12 +52,16 @@ export default async function AmaliyArizalarSahifa({ searchParams }) {
   const q = searchParams?.q?.trim() || "";
   const toifaFiltr = searchParams?.toifa || "";
   const filialFiltr = searchParams?.filial || "";
+  const guruhFiltr = searchParams?.guruh || "";
+  const tartibFiltr = searchParams?.tartib || "";
+  const radEtishRuxsat = rolgaRuxsat(profile, ["hujjatchi", "superadmin"]);
 
-  const { data: filiallar } = await supabase
-    .from("filiallar")
-    .select("id, nomi")
-    .eq("faol", true)
-    .order("nomi");
+  const [{ data: filiallar }, { data: guruhlar }] = await Promise.all([
+    supabase.from("filiallar").select("id, nomi").eq("faol", true).order("nomi"),
+    // Guruh filiallararo bo'lishi mumkin — filial bo'yicha cheklamasdan
+    // barcha faol guruhlarni ko'rsatamiz.
+    supabase.from("guruhlar").select("id, nomi").eq("faol", true).order("nomi"),
+  ]);
 
   // 1) Yangi (hujjat kutilayotgan) "faqat amaliy" talabalar
   let yangiSo_rov = supabase
@@ -55,11 +69,13 @@ export default async function AmaliyArizalarSahifa({ searchParams }) {
     .select(TALABA_SELECT)
     .eq("arxivlangan", false)
     .eq("hujjat_tayyor", false)
+    .eq("rad_etildi", false)
     .eq("imtihon_turi", "amaliy")
     .order("created_at", { ascending: false });
   if (q) yangiSo_rov = yangiSo_rov.or(`ism_familya.ilike.%${q}%,intalim_id.ilike.%${q}%`);
   if (toifaFiltr) yangiSo_rov = yangiSo_rov.eq("toifa", toifaFiltr);
   if (filialFiltr) yangiSo_rov = yangiSo_rov.eq("filial_id", filialFiltr);
+  if (guruhFiltr) yangiSo_rov = yangiSo_rov.eq("guruh_id", guruhFiltr);
 
   // 2) Nazariydan o'tgan talabalar uchun amaliyga yuborish so'rovlari, va
   //    3) har qanday nazariydan o'tgan/amaliyga tayyor talaba — faqat
@@ -104,6 +120,7 @@ export default async function AmaliyArizalarSahifa({ searchParams }) {
             .neq("talabalar.toifa", "express");
           if (filialFiltr) tayyorSo_rov = tayyorSo_rov.eq("talabalar.filial_id", filialFiltr);
           if (toifaFiltr) tayyorSo_rov = tayyorSo_rov.eq("talabalar.toifa", toifaFiltr);
+          if (guruhFiltr) tayyorSo_rov = tayyorSo_rov.eq("talabalar.guruh_id", guruhFiltr);
           if (q) tayyorSo_rov = tayyorSo_rov.or(`ism_familya.ilike.%${q}%,intalim_id.ilike.%${q}%`, { foreignTable: "talabalar" });
 
           const [{ data: arizalarData }, { data: imtihonlarData }, { data: urinishlarXom }] = await Promise.all([
@@ -135,11 +152,30 @@ export default async function AmaliyArizalarSahifa({ searchParams }) {
       : Promise.resolve(null),
   ]);
 
-  const yangiRoyxat = yangiXom || [];
+  const yangiRoyxat = tartibFiltr === "guruh" ? guruhBoyichaSaralash(yangiXom || []) : yangiXom || [];
   if (otkazishNatija) {
     otkazishSo_rovlar = otkazishNatija.arizalar;
     aktivImtihonlar = otkazishNatija.imtihonlar;
-    tayyorTalabalar = otkazishNatija.tayyor;
+    tayyorTalabalar =
+      tartibFiltr === "guruh" ? guruhBoyichaSaralash(otkazishNatija.tayyor) : otkazishNatija.tayyor;
+  }
+
+  let sabablar = [];
+  let radEtilganRoyxat = [];
+  if (radEtishRuxsat) {
+    const [{ data: sabablarXom }, { data: radEtilganXom }] = await Promise.all([
+      supabase.from("sabablar").select("id, matn").eq("faol", true).order("created_at"),
+      supabase
+        .from("talabalar")
+        .select(RAD_ETILGAN_SELECT)
+        .eq("arxivlangan", false)
+        .eq("rad_etildi", true)
+        .eq("imtihon_turi", "amaliy")
+        .order("rad_vaqt", { ascending: false })
+        .limit(200),
+    ]);
+    sabablar = sabablarXom || [];
+    radEtilganRoyxat = radEtilganXom || [];
   }
 
   return (
@@ -175,6 +211,22 @@ export default async function AmaliyArizalarSahifa({ searchParams }) {
             ))}
           </select>
         </div>
+        <div className="min-w-[160px]">
+          <label className="label">Guruh</label>
+          <select className="input" name="guruh" defaultValue={guruhFiltr}>
+            <option value="">Barchasi</option>
+            {(guruhlar || []).map((g) => (
+              <option key={g.id} value={g.id}>{g.nomi}</option>
+            ))}
+          </select>
+        </div>
+        <div className="min-w-[160px]">
+          <label className="label">Saralash</label>
+          <select className="input" name="tartib" defaultValue={tartibFiltr}>
+            <option value="">Sana (yangi birinchi)</option>
+            <option value="guruh">Guruh (A-Z)</option>
+          </select>
+        </div>
         <button className="btn-secondary" type="submit">Qidirish</button>
       </form>
 
@@ -183,8 +235,28 @@ export default async function AmaliyArizalarSahifa({ searchParams }) {
           🆕 Yangi amaliy arizalar{" "}
           <span className="text-sm font-normal text-slate-500">({yangiRoyxat.length} ta kutilmoqda)</span>
         </h2>
-        <YangiTalabaArizaRoyxati royxat={yangiRoyxat} error={error} />
+        <YangiTalabaArizaRoyxati
+          royxat={yangiRoyxat}
+          error={error}
+          sabablar={sabablar}
+          radEtishRuxsat={radEtishRuxsat}
+          imtihonlar={aktivImtihonlar}
+          ommaviyTasdiqRuxsat={radEtishRuxsat}
+        />
       </div>
+
+      {radEtishRuxsat && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-800">
+            🚫 Rad etilgan arizalar{" "}
+            <span className="text-sm font-normal text-slate-500">({radEtilganRoyxat.length} ta)</span>
+          </h2>
+          <RadEtilganArizalarRoyxati
+            royxat={radEtilganRoyxat}
+            qaytarishRuxsat={rolgaRuxsat(profile, ["superadmin"])}
+          />
+        </div>
+      )}
 
       {otkazishSorovRuxsat && (
         <div className="space-y-3">

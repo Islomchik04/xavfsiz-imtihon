@@ -16,7 +16,8 @@ const TALABA_SELECT = `
   guruhlar(id, nomi),
   nazariy_oqituvchilar:oqituvchilar!nazariy_oqituvchi_id(id, ism_familya),
   qoshgan_profil:profiles!qoshgan(ism_familya),
-  hujjat_tayyorlagan_profil:profiles!hujjat_tayyorlagan(ism_familya)
+  hujjat_tayyorlagan_profil:profiles!hujjat_tayyorlagan(ism_familya),
+  istalgan_imtihon:imtihonlar!istalgan_imtihon_id(sana, izoh)
 `;
 
 const URINISH_SELECT = `
@@ -61,11 +62,17 @@ export default async function TalabaDetailSahifa({ params }) {
 
   let formaMalumotlari = null;
   if (asosiyTahrirRuxsat) {
-    const [{ data: filiallar }, { data: oqituvchilarXom }, { data: oqFiliallar }] = await Promise.all([
-      supabase.from("filiallar").select("id, nomi").eq("faol", true).order("nomi"),
-      supabase.from("oqituvchilar").select("id, ism_familya, turi").eq("faol", true).order("ism_familya"),
-      supabase.from("oqituvchi_filiallar").select("oqituvchi_id, filial_id"),
-    ]);
+    const [{ data: filiallar }, { data: oqituvchilarXom }, { data: oqFiliallar }, { data: faolImtihonlar }] =
+      await Promise.all([
+        supabase.from("filiallar").select("id, nomi").eq("faol", true).order("nomi"),
+        supabase.from("oqituvchilar").select("id, ism_familya, turi").eq("faol", true).order("ism_familya"),
+        supabase.from("oqituvchi_filiallar").select("oqituvchi_id, filial_id"),
+        supabase
+          .from("imtihonlar")
+          .select("id, sana, izoh")
+          .in("holati", ["boshlanmagan", "boshlangan"])
+          .order("sana", { ascending: false }),
+      ]);
     const map = new Map();
     for (const of_ of oqFiliallar || []) {
       if (!map.has(of_.oqituvchi_id)) map.set(of_.oqituvchi_id, []);
@@ -74,6 +81,7 @@ export default async function TalabaDetailSahifa({ params }) {
     formaMalumotlari = {
       filiallar: filiallar || [],
       oqituvchilar: (oqituvchilarXom || []).map((o) => ({ ...o, filiallar: map.get(o.id) || [] })),
+      imtihonlar: faolImtihonlar || [],
     };
   }
 

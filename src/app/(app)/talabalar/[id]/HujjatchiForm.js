@@ -12,7 +12,14 @@ export default function HujjatchiForm({ talaba, imtihonlar }) {
   const [hujjatForma083, setHujjatForma083] = useState(talaba.forma_083);
   const [tasdiqnoma, setTasdiqnoma] = useState(false);
   const [imtihonVaraqasi, setImtihonVaraqasi] = useState(false);
-  const [imtihonId, setImtihonId] = useState("");
+  // Admin ariza yuborayotganda "qaysi imtihon uchun" degan istagini
+  // bildirgan bo'lsa — shu imtihon avtomatik oldindan tanlanadi (hujjatchi
+  // xohlasa boshqasini tanlashi mumkin).
+  const [imtihonId, setImtihonId] = useState(
+    talaba.istalgan_imtihon_id && imtihonlar.some((i) => i.id === talaba.istalgan_imtihon_id)
+      ? talaba.istalgan_imtihon_id
+      : ""
+  );
   const [izoh, setIzoh] = useState("");
   const [xato, setXato] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
@@ -88,6 +95,13 @@ export default function HujjatchiForm({ talaba, imtihonlar }) {
       />
       <Toggle label="Tasdiqnoma bor" qiymat={tasdiqnoma} onChange={setTasdiqnoma} />
       <Toggle label="Imtihon varaqasi bor" qiymat={imtihonVaraqasi} onChange={setImtihonVaraqasi} />
+
+      {talaba.istalgan_imtihon && (
+        <div className="text-sm text-brand-700 bg-brand-50 rounded-lg px-3 py-2">
+          🗓️ Admin so'ragan imtihon: {sanaKorinishi(talaba.istalgan_imtihon.sana)}
+          {talaba.istalgan_imtihon.izoh ? ` — ${talaba.istalgan_imtihon.izoh}` : ""}
+        </div>
+      )}
 
       <div>
         <label className="label">Imtihonga biriktirish</label>

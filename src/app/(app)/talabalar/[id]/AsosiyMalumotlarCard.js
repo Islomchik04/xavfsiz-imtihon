@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { IMTIHON_TURI, TOIFALAR } from "@/lib/constants";
 import { telefonKorinishi } from "@/lib/telefon";
+import { sanaKorinishi } from "@/lib/imtihonHisob";
 import YangiTalabaForm from "../yangi/YangiTalabaForm";
 
 export default function AsosiyMalumotlarCard({ talaba, tahrirRuxsat, formaMalumotlari, profile }) {
@@ -22,6 +23,7 @@ export default function AsosiyMalumotlarCard({ talaba, tahrirRuxsat, formaMalumo
           profile={profile}
           filiallar={formaMalumotlari.filiallar}
           oqituvchilar={formaMalumotlari.oqituvchilar}
+          imtihonlar={formaMalumotlari.imtihonlar}
           tahrirlanayotgan={talaba}
         />
       </div>
@@ -66,6 +68,14 @@ export default function AsosiyMalumotlarCard({ talaba, tahrirRuxsat, formaMalumo
         <Satr label="Imtihon turi" qiymat={IMTIHON_TURI[talaba.imtihon_turi]} />
         {talaba.imtihon_turi !== "amaliy" && (
           <Satr label="Nazariy o'qituvchi" qiymat={talaba.nazariy_oqituvchilar?.ism_familya} />
+        )}
+        {talaba.istalgan_imtihon && (
+          <Satr
+            label="So'ralgan imtihon"
+            qiymat={`${sanaKorinishi(talaba.istalgan_imtihon.sana)}${
+              talaba.istalgan_imtihon.izoh ? ` — ${talaba.istalgan_imtihon.izoh}` : ""
+            }`}
+          />
         )}
         <Satr label="Ro'yxatga olgan" qiymat={talaba.qoshgan_profil?.ism_familya} />
         <Satr label="Qo'shilgan sana" qiymat={new Date(talaba.created_at).toLocaleString("uz-UZ")} />

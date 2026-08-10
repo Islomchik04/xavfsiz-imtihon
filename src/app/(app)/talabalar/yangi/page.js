@@ -10,10 +10,17 @@ export default async function YangiTalabaSahifa() {
     redirect("/talabalar");
   }
 
-  const [{ data: filiallar }, { data: oqituvchilarXom }, { data: oqFiliallar }] = await Promise.all([
+  const [{ data: filiallar }, { data: oqituvchilarXom }, { data: oqFiliallar }, { data: imtihonlar }] = await Promise.all([
     supabase.from("filiallar").select("id, nomi").eq("faol", true).order("nomi"),
     supabase.from("oqituvchilar").select("id, ism_familya, turi").eq("faol", true).order("ism_familya"),
     supabase.from("oqituvchi_filiallar").select("oqituvchi_id, filial_id"),
+    // Hali yakunlanmagan (bo'lg'usi/joriy) imtihonlar — admin ariza
+    // yuborayotganda "qaysi imtihon uchun" degan istagini shulardan tanlaydi.
+    supabase
+      .from("imtihonlar")
+      .select("id, sana, izoh")
+      .in("holati", ["boshlanmagan", "boshlangan"])
+      .order("sana", { ascending: false }),
   ]);
 
   const filiallarMap = new Map();
@@ -44,6 +51,7 @@ export default async function YangiTalabaSahifa() {
         profile={profile}
         filiallar={filiallar || []}
         oqituvchilar={oqituvchilar}
+        imtihonlar={imtihonlar || []}
       />
     </div>
   );

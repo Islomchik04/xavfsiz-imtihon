@@ -3,6 +3,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { IMTIHON_TURI, FORMA_083_LABEL, TALABA_HOLATI, TOIFALAR } from "@/lib/constants";
 import { talabaHolati, birUrinishdaOtganmi, qismHolati, oxirgiUrinish, sanaKorinishi } from "@/lib/imtihonHisob";
 import { telefonKorinishi } from "@/lib/telefon";
+import { guruhBoyichaSaralash } from "@/lib/saralash";
 
 const TALABA_SELECT = `
   id, ism_familya, telefon, intalim_id, toifa, imtihon_turi, forma_083, hujjat_tayyor, qarzdorlik, qarzdorlik_summasi,
@@ -27,6 +28,8 @@ export async function GET(so_rov) {
   const q = searchParams.get("q")?.trim() || "";
   const holatFiltr = searchParams.get("holat") || "";
   const toifaFiltr = searchParams.get("toifa") || "";
+  const guruhFiltr = searchParams.get("guruh") || "";
+  const tartibFiltr = searchParams.get("tartib") || "";
 
   let so_rovBuilder = supabase
     .from("talabalar")
@@ -36,6 +39,7 @@ export async function GET(so_rov) {
     .order("created_at", { ascending: false });
   if (q) so_rovBuilder = so_rovBuilder.or(`ism_familya.ilike.%${q}%,intalim_id.ilike.%${q}%`);
   if (toifaFiltr) so_rovBuilder = so_rovBuilder.eq("toifa", toifaFiltr);
+  if (guruhFiltr) so_rovBuilder = so_rovBuilder.eq("guruh_id", guruhFiltr);
 
   const { data: talabalarXom, error } = await so_rovBuilder.limit(2000);
   if (error) {
@@ -75,6 +79,7 @@ export async function GET(so_rov) {
   } else if (holatFiltr) {
     royxat = royxat.filter((t) => t.holat === holatFiltr);
   }
+  if (tartibFiltr === "guruh") royxat = guruhBoyichaSaralash(royxat);
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Xavfsiz Imtihon";
