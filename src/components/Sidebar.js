@@ -13,7 +13,7 @@ const LINKLAR = [
   { href: "/talabalar", key: "nav_talabalar", ikon: "🧑‍🎓", rollar: ["superadmin", "admin", "hujjatchi", "imtihonchi"] },
   { href: "/talabalar/yangi", key: "nav_yangi_talaba", ikon: "➕", rollar: ["admin", "hujjatchi", "superadmin"] },
   { href: "/arizalar", key: "nav_arizalar", ikon: "📋", rollar: ["admin", "hujjatchi", "superadmin"] },
-  { href: "/amaliy-arizalar", key: "nav_amaliy_arizalar", ikon: "🚗", rollar: ["hujjatchi", "imtihonchi", "superadmin"] },
+  { href: "/amaliy-arizalar", key: "nav_amaliy_arizalar", ikon: "🚗", rollar: ["admin", "hujjatchi", "imtihonchi", "superadmin"] },
   { href: "/mustaqil-imtihonchilar", key: "nav_mustaqil_imtihonchilar", ikon: "📷", rollar: ["hujjatchi", "superadmin"] },
   { href: "/imtihonlar", key: "nav_imtihonlar", ikon: "🗓️", rollar: ["hujjatchi", "imtihonchi", "superadmin"] },
   { href: "/arxiv", key: "nav_arxiv", ikon: "🗄️", rollar: ["superadmin", "admin", "hujjatchi", "imtihonchi"] },
