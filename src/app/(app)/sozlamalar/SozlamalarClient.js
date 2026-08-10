@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { ROLLAR, OQITUVCHI_TURI } from "@/lib/constants";
-import { telefonKorinishi } from "@/lib/telefon";
+import { telefonKorinishi, telefonNormallash } from "@/lib/telefon";
 
 const TABLAR = [
   { key: "foydalanuvchilar", label: "Foydalanuvchilar" },
@@ -437,24 +437,36 @@ function FoydalanuvchiTahrirForma({ foydalanuvchi, filiallar, onBekor, onSaqland
 function FiliallarBolimi({ filiallar }) {
   const router = useRouter();
   const [nomi, setNomi] = useState("");
+  const [kpiBor, setKpiBor] = useState(true);
   const [xato, setXato] = useState("");
 
   async function qoshish(e) {
     e.preventDefault();
     setXato("");
     const supabase = supabaseBrowser();
-    const { error } = await supabase.from("filiallar").insert({ nomi: nomi.trim() });
+    const { error } = await supabase.from("filiallar").insert({ nomi: nomi.trim(), kpi_bor: kpiBor });
     if (error) {
       setXato(error.message);
       return;
     }
     setNomi("");
+    setKpiBor(true);
     router.refresh();
   }
 
   async function faollikniOzgartirish(id, faol) {
     const supabase = supabaseBrowser();
     await supabase.from("filiallar").update({ faol: !faol }).eq("id", id);
+    router.refresh();
+  }
+
+  // Superadmin har bir filial uchun "KPI bormi?" belgisini o'rnatadi — "yo'q"
+  // deb belgilangan filialning o'quvchilari (o'qituvchi biriktirilgan bo'lsa
+  // ham) hech qachon o'qituvchi KPI/maosh hisobiga kirmaydi (Express toifa
+  // bilan bir xil mantiq — qarang: imtihonHisob.js#kpigaKirmaydimi).
+  async function kpiniOzgartirish(id, kpiBorHozir) {
+    const supabase = supabaseBrowser();
+    await supabase.from("filiallar").update({ kpi_bor: !kpiBorHozir }).eq("id", id);
     router.refresh();
   }
 
@@ -466,6 +478,15 @@ function FiliallarBolimi({ filiallar }) {
           <label className="label">Filial nomi</label>
           <input className="input" value={nomi} onChange={(e) => setNomi(e.target.value)} required />
         </div>
+        <div>
+          <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+            <input type="checkbox" checked={kpiBor} onChange={(e) => setKpiBor(e.target.checked)} />
+            KPI hisoblanadi
+          </label>
+          <p className="text-xs text-slate-400 mt-1">
+            O'chirilsa, shu filial o'quvchilari o'qituvchi KPI/maosh hisobiga hech qachon kirmaydi.
+          </p>
+        </div>
         {xato && <div className="text-sm text-rose-600 bg-rose-50 rounded-lg px-3 py-2">{xato}</div>}
         <button className="btn-primary w-full">Qo'shish</button>
       </form>
@@ -474,16 +495,27 @@ function FiliallarBolimi({ filiallar }) {
         <h2 className="font-semibold text-slate-800 mb-4">Filiallar</h2>
         <ul className="divide-y divide-slate-50">
           {filiallar.map((f) => (
-            <li key={f.id} className="py-2.5 flex justify-between items-center text-sm">
+            <li key={f.id} className="py-2.5 flex justify-between items-center gap-2 text-sm">
               <span className="font-medium text-slate-700">{f.nomi}</span>
-              <button
-                onClick={() => faollikniOzgartirish(f.id, f.faol)}
-                className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                  f.faol ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
-                }`}
-              >
-                {f.faol ? "Faol" : "Faolsiz"}
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => kpiniOzgartirish(f.id, f.kpi_bor)}
+                  title="KPI hisoblanadimi?"
+                  className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                    f.kpi_bor ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-400"
+                  }`}
+                >
+                  {f.kpi_bor ? "KPI bor" : "KPI yo'q"}
+                </button>
+                <button
+                  onClick={() => faollikniOzgartirish(f.id, f.faol)}
+                  className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                    f.faol ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  {f.faol ? "Faol" : "Faolsiz"}
+                </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -847,6 +879,7 @@ function OqituvchiTahrirForma({ oqituvchi, filiallar, onBekor, onSaqlandi }) {
   const [ismFamilya, setIsmFamilya] = useState(oqituvchi.ism_familya);
   const [turi, setTuri] = useState(oqituvchi.turi);
   const [tanlanganFiliallar, setTanlanganFiliallar] = useState(oqituvchi.filial_idlar || []);
+  const [telefon, setTelefon] = useState(oqituvchi.telefon ? telefonKorinishi(oqituvchi.telefon) : "");
   const [xato, setXato] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
 
@@ -866,9 +899,10 @@ function OqituvchiTahrirForma({ oqituvchi, filiallar, onBekor, onSaqlandi }) {
     setYuklanmoqda(true);
     const supabase = supabaseBrowser();
 
+    const telefonNormal = telefon.trim() ? telefonNormallash(telefon) : null;
     const { error: ozErr } = await supabase
       .from("oqituvchilar")
-      .update({ ism_familya: ismFamilya.trim(), turi })
+      .update({ ism_familya: ismFamilya.trim(), turi, telefon: telefonNormal })
       .eq("id", oqituvchi.id);
     if (ozErr) {
       setYuklanmoqda(false);
@@ -937,6 +971,27 @@ function OqituvchiTahrirForma({ oqituvchi, filiallar, onBekor, onSaqlandi }) {
             </label>
           ))}
         </div>
+      </div>
+      <div>
+        <label className="label">Telefon (Telegram bot uchun, ixtiyoriy)</label>
+        <div className="flex items-stretch">
+          <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-300 bg-white text-slate-500 text-[15px]">
+            +998
+          </span>
+          <input
+            className="input rounded-l-none"
+            type="tel"
+            inputMode="numeric"
+            value={telefon}
+            onChange={(e) => setTelefon(e.target.value)}
+            placeholder="91 234 56 78"
+          />
+        </div>
+        <p className="text-xs text-slate-400 mt-1">
+          {oqituvchi.telegram_chat_id
+            ? "🤖 Telegram bot bilan bog'langan."
+            : "Kiritilsa, o'qituvchi botga shu raqamni ulashib \"erkin o'quvchi\" KPI so'rovlarini yuboradi."}
+        </p>
       </div>
       {xato && <div className="text-sm text-rose-600 bg-rose-50 rounded-lg px-3 py-2">{xato}</div>}
       <div className="flex gap-2">

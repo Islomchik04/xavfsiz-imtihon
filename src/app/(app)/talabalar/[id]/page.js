@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
 import { joriyFoydalanuvchi } from "@/lib/joriyFoydalanuvchi";
 import { IMTIHON_TURI, FORMA_083_LABEL, TALABA_HOLATI, TALABA_HOLATI_RANG } from "@/lib/constants";
-import { talabaHolati } from "@/lib/imtihonHisob";
+import { talabaHolati, qismHolati } from "@/lib/imtihonHisob";
 import Badge from "@/components/Badge";
 import AsosiyMalumotlarCard from "./AsosiyMalumotlarCard";
 import HujjatchiForm from "./HujjatchiForm";
 import NatijaForm from "./NatijaForm";
 import TalabaniOchirish from "./TalabaniOchirish";
 import ArxivBoshqaruvi from "./ArxivBoshqaruvi";
+import AmaliyArizaForma from "./AmaliyArizaForma";
 
 const TALABA_SELECT = `
   *,
@@ -88,6 +89,33 @@ export default async function TalabaDetailSahifa({ params }) {
 
   const holat = talabaHolati(urinishlar || []);
 
+  // "Amaliy ariza" — Filial admini (yoki hujjatchi/imtihonchi/superadmin)
+  // nazariydan o'tgan, hujjati tayyor, hali amaliyga biriktirilmagan
+  // talabani amaliy imtihonga yuborish uchun so'rov (ariza) yuboradi —
+  // qarang: AmaliyArizaForma.js va amaliy_ariza_yuborish RPC'si.
+  let amaliyAriza = null;
+  const amaliyArizaKorishRuxsat =
+    profile.role === "admin" || ["hujjatchi", "imtihonchi", "superadmin"].includes(profile.role);
+  if (amaliyArizaKorishRuxsat) {
+    const { data } = await supabase
+      .from("amaliy_arizalar")
+      .select("id, holati, izoh, created_at")
+      .eq("talaba_id", talaba.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    amaliyAriza = data?.[0] || null;
+  }
+
+  const amaliyArizaYuborishRuxsat =
+    (profile.role === "admin" && profile.filial_id === talaba.filial_id) ||
+    ["hujjatchi", "imtihonchi", "superadmin"].includes(profile.role);
+
+  const amaliyTayyormi =
+    talaba.hujjat_tayyor &&
+    talaba.toifa !== "express" &&
+    qismHolati(urinishlar || [], "nazariy") === "otgan" &&
+    qismHolati(urinishlar || [], "amaliy") === "kirmagan";
+
   return (
     <div className="max-w-2xl space-y-6">
       <div>
@@ -157,6 +185,15 @@ export default async function TalabaDetailSahifa({ params }) {
           />
         )}
       </div>
+
+      {amaliyArizaKorishRuxsat && (amaliyTayyormi || (amaliyAriza && amaliyAriza.holati === "kutilmoqda")) && (
+        <AmaliyArizaForma
+          talabaId={talaba.id}
+          amaliyTayyormi={amaliyTayyormi}
+          mavjudAriza={amaliyAriza}
+          yuborishRuxsat={amaliyArizaYuborishRuxsat}
+        />
+      )}
     </div>
   );
 }

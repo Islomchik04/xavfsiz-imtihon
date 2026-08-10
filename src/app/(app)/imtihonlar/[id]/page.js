@@ -46,6 +46,26 @@ export default async function ImtihonTafsilotSahifa({ params }) {
 
   if (imtihonXato || !imtihon) notFound();
 
+  // Talaba boshqa (masalan yangi tanlangan) imtihonga amaliyga o'tkazilgan
+  // bo'lishi mumkin — bu holda yangi urinish BOSHQA imtihon_id bilan
+  // yaratiladi va yuqoridagi (shu imtihonga cheklangan) so'rovda ko'rinmaydi.
+  // Shuning uchun shu sahifadagi talabalar uchun BARCHA (istalgan imtihondagi)
+  // amaliy urinishlarni alohida yuklab olamiz — natijada eski imtihon
+  // sahifasida ham "allaqachon amaliyga yuborilgan" holati to'g'ri ko'rinadi
+  // va qayta-qayta yuborib yuborilmaydi.
+  const talabaIdlar = Array.from(
+    new Set((urinishlar || []).map((u) => u.talaba_id).filter(Boolean))
+  );
+  let amaliyBarchaJoylarda = [];
+  if (talabaIdlar.length > 0) {
+    const { data } = await supabase
+      .from("talaba_imtihonlar")
+      .select("talaba_id, imtihon_id, imtihonlar(sana, izoh)")
+      .in("talaba_id", talabaIdlar)
+      .eq("amaliy_kerak", true);
+    amaliyBarchaJoylarda = data || [];
+  }
+
   return (
     <ImtihonTafsilotClient
       imtihon={imtihon}
@@ -57,6 +77,7 @@ export default async function ImtihonTafsilotSahifa({ params }) {
       oqituvchilar={oqituvchilar || []}
       sabablar={sabablar || []}
       aktivImtihonlar={aktivImtihonlar || []}
+      amaliyBarchaJoylarda={amaliyBarchaJoylarda}
     />
   );
 }

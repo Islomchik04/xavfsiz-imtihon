@@ -17,9 +17,9 @@ export default async function SozlamalarSahifa() {
     { data: foydalanuvchilar },
     { data: sabablar },
   ] = await Promise.all([
-    supabase.from("filiallar").select("id, nomi, faol").order("nomi"),
+    supabase.from("filiallar").select("id, nomi, faol, kpi_bor").order("nomi"),
     supabase.from("guruhlar").select("id, nomi, filial_id, faol, filiallar(nomi)").order("nomi"),
-    supabase.from("oqituvchilar").select("id, ism_familya, turi, faol").order("ism_familya"),
+    supabase.from("oqituvchilar").select("id, ism_familya, turi, faol, telefon, telegram_chat_id").order("ism_familya"),
     supabase.from("oqituvchi_filiallar").select("oqituvchi_id, filial_id"),
     supabase
       .from("profiles")

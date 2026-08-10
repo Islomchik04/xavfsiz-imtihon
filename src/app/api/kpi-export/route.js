@@ -16,7 +16,7 @@ const URINISH_SELECT = `
   nazariy_urinish_raqami, amaliy_urinish_raqami,
   nazariy_oqituvchi_id,
   imtihonlar(sana),
-  talabalar(ism_familya, toifa, filiallar(nomi), guruhlar(nomi))
+  talabalar(ism_familya, toifa, filiallar(nomi, kpi_bor), guruhlar(nomi))
 `;
 
 // Superadmin uchun: tanlangan oyning KPI/maosh hisobotini Excel (.xlsx)
@@ -39,9 +39,13 @@ export async function GET(so_rov) {
   const { searchParams } = new URL(so_rov.url);
   const tanlanganOy = searchParams.get("oy") || oyKaliti(new Date().toISOString().slice(0, 10));
 
-  const [{ data: urinishlarXom, error }, { data: oqituvchilar }] = await Promise.all([
+  const [{ data: urinishlarXom, error }, { data: oqituvchilar }, { data: erkinArizalarXom }] = await Promise.all([
     supabase.from("talaba_imtihonlar").select(URINISH_SELECT),
     supabase.from("oqituvchilar").select("id, ism_familya, turi").eq("faol", true),
+    supabase
+      .from("erkin_talaba_arizalari")
+      .select("oqituvchi_id, ism_familya, telefon, urinish_raqami, kpi_hafta, korib_chiqqan_vaqt, oqituvchilar(ism_familya)")
+      .eq("holati", "tasdiqlangan"),
   ]);
 
   if (error) {
@@ -55,7 +59,11 @@ export async function GET(so_rov) {
   const oyUrinishlari = tartibliUrinishlar.filter(
     (u) => u.imtihonlar?.sana && oyKaliti(u.imtihonlar.sana) === tanlanganOy
   );
-  const kpiRoyxat = oqituvchilarKpiHisoblash(oyUrinishlari, oqituvchilar || []);
+  // Tasdiqlangan "erkin talaba" (Telegram bot) arizalari — shu oyga tegishlilari.
+  const oyErkinArizalari = (erkinArizalarXom || []).filter(
+    (a) => a.kpi_hafta && oyKaliti(a.kpi_hafta) === tanlanganOy
+  );
+  const kpiRoyxat = oqituvchilarKpiHisoblash(oyUrinishlari, oqituvchilar || [], oyErkinArizalari);
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Xavfsiz Imtihon";
@@ -224,6 +232,37 @@ export async function GET(so_rov) {
   }
   if (oquvchilarQatorlari.length === 0) {
     oquvchilarBet.addRow({ oqituvchiIsm: "Shu oyda ma'lumot yo'q" });
+  }
+
+  // --- 4-bet: Mustaqil o'quvchilar (Telegram bot) ------------------------------
+  const erkinBet = workbook.addWorksheet("Mustaqil o'quvchilar (bot)");
+  erkinBet.columns = [
+    { header: "O'qituvchi", key: "oqituvchiIsm", width: 26 },
+    { header: "O'quvchi", key: "oquvchi", width: 26 },
+    { header: "Telefon", key: "telefon", width: 16 },
+    { header: "Necha-urinishda", key: "urinish", width: 16 },
+    { header: "Hafta", key: "hafta", width: 22 },
+    { header: "Tasdiqlangan sana", key: "sana", width: 18 },
+    { header: "Mukofot (so'm)", key: "mukofot", width: 16 },
+  ];
+  erkinBet.getRow(1).font = { bold: true };
+
+  for (const a of oyErkinArizalari) {
+    const oq = oqMap.get(a.oqituvchi_id);
+    if (!oq) continue;
+    const hafta = haftaBoshi(a.kpi_hafta);
+    erkinBet.addRow({
+      oqituvchiIsm: a.oqituvchilar?.ism_familya || oq.ism_familya,
+      oquvchi: a.ism_familya,
+      telefon: a.telefon || "",
+      urinish: a.urinish_raqami || "",
+      hafta: `${sanaKorinishi(hafta)} – ${sanaKorinishi(haftaOxiri(hafta))}`,
+      sana: a.korib_chiqqan_vaqt ? new Date(a.korib_chiqqan_vaqt).toLocaleDateString("uz-UZ") : "",
+      mukofot: KPI_MUKOFOT_BIR,
+    });
+  }
+  if (oyErkinArizalari.length === 0) {
+    erkinBet.addRow({ oqituvchiIsm: "Shu oyda ma'lumot yo'q" });
   }
 
   const buffer = await workbook.xlsx.writeBuffer();

@@ -3,6 +3,8 @@ import { joriyFoydalanuvchi } from "@/lib/joriyFoydalanuvchi";
 import Badge from "@/components/Badge";
 import { IMTIHON_TURI, TOIFALAR } from "@/lib/constants";
 import { telefonKorinishi } from "@/lib/telefon";
+import AmaliyArizaBolimi from "./AmaliyArizaBolimi";
+import ErkinArizaBolimi from "./ErkinArizaBolimi";
 
 // Adminlar (yoki hujjatchi/superadmin) tomonidan "Yangi talaba" orqali
 // qo'shilgan, lekin hujjatchi hali hujjatini tayyor deb belgilamagan
@@ -20,6 +22,7 @@ export default async function ArizalarSahifa({ searchParams }) {
   const { profile, supabase } = await joriyFoydalanuvchi();
   const q = searchParams?.q?.trim() || "";
   const toifaFiltr = searchParams?.toifa || "";
+  const filialFiltr = searchParams?.filial || "";
 
   let so_rov = supabase
     .from("talabalar")
@@ -29,9 +32,76 @@ export default async function ArizalarSahifa({ searchParams }) {
     .order("created_at", { ascending: false });
   if (q) so_rov = so_rov.or(`ism_familya.ilike.%${q}%,intalim_id.ilike.%${q}%`);
   if (toifaFiltr) so_rov = so_rov.eq("toifa", toifaFiltr);
+  if (filialFiltr) so_rov = so_rov.eq("filial_id", filialFiltr);
 
   const { data: royxatXom, error } = await so_rov.limit(300);
   const royxat = royxatXom || [];
+
+  // Filial bo'yicha filtr qilish uchun — Hujjatchi/superadmin/imtihonchi
+  // barcha filiallarni ko'radi, Admin RLS orqali baribir faqat o'z
+  // filialini ko'radi (dropdown baribir zararsiz).
+  const { data: filiallar } = await supabase
+    .from("filiallar")
+    .select("id, nomi")
+    .eq("faol", true)
+    .order("nomi");
+
+  // "Amaliy imtihon so'rovlari" — faqat Hujjatchi/imtihonchi/superadmin
+  // ko'rib chiqadi (tasdiqlash/rad etish huquqi ham shularda).
+  const amaliyArizaRuxsat = ["hujjatchi", "imtihonchi", "superadmin"].includes(profile.role);
+  let amaliyArizalar = [];
+  let aktivImtihonlar = [];
+  if (amaliyArizaRuxsat) {
+    let amaliySo_rov = supabase
+      .from("amaliy_arizalar")
+      .select(
+        `
+        id, izoh, created_at, holati,
+        talabalar!inner(id, ism_familya, intalim_id, filial_id, filiallar(nomi), guruhlar(nomi)),
+        soragan_profil:profiles!soragan(ism_familya)
+      `
+      )
+      .eq("holati", "kutilmoqda")
+      .order("created_at", { ascending: false });
+    if (filialFiltr) amaliySo_rov = amaliySo_rov.eq("talabalar.filial_id", filialFiltr);
+    const [{ data: amaliyData }, { data: imtihonlarData }] = await Promise.all([
+      amaliySo_rov,
+      supabase
+        .from("imtihonlar")
+        .select("id, sana, izoh, holati")
+        .in("holati", ["boshlanmagan", "boshlangan"])
+        .order("sana", { ascending: false }),
+    ]);
+    amaliyArizalar = amaliyData || [];
+    aktivImtihonlar = imtihonlarData || [];
+  }
+
+  // "Mustaqil o'quvchilar (Telegram bot)" — foydalanuvchining tanloviga
+  // ko'ra faqat Hujjatchi/Superadmin ko'rib chiqadi va tasdiqlaydi (RLS ham
+  // shu ikkalasiga select ruxsat beradi — qarang: erkin_talaba_arizalari
+  // jadvali, 0023-migratsiya).
+  const erkinArizaRuxsat = ["hujjatchi", "superadmin"].includes(profile.role);
+  let erkinArizalar = [];
+  if (erkinArizaRuxsat) {
+    const { data: erkinData } = await supabase
+      .from("erkin_talaba_arizalari")
+      .select(`
+        id, ism_familya, telefon, urinish_raqami, izoh, rasm_yoli, created_at,
+        oqituvchilar(ism_familya)
+      `)
+      .eq("holati", "kutilmoqda")
+      .order("created_at", { ascending: false });
+
+    erkinArizalar = await Promise.all(
+      (erkinData || []).map(async (a) => {
+        if (!a.rasm_yoli) return { ...a, rasmUrl: null };
+        const { data: imza } = await supabase.storage
+          .from("erkin-fotolar")
+          .createSignedUrl(a.rasm_yoli, 3600);
+        return { ...a, rasmUrl: imza?.signedUrl || null };
+      })
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -57,12 +127,30 @@ export default async function ArizalarSahifa({ searchParams }) {
             ))}
           </select>
         </div>
+        <div className="min-w-[160px]">
+          <label className="label">Filial</label>
+          <select className="input" name="filial" defaultValue={filialFiltr}>
+            <option value="">Barchasi</option>
+            {(filiallar || []).map((f) => (
+              <option key={f.id} value={f.id}>{f.nomi}</option>
+            ))}
+          </select>
+        </div>
         <button className="btn-secondary" type="submit">Qidirish</button>
       </form>
 
-      <p className="text-sm text-slate-500">
-        <span className="font-semibold text-slate-700">{royxat.length}</span> ta ariza kutilmoqda
-      </p>
+      {erkinArizaRuxsat && <ErkinArizaBolimi arizalar={erkinArizalar} />}
+
+      {amaliyArizaRuxsat && (
+        <AmaliyArizaBolimi arizalar={amaliyArizalar} aktivImtihonlar={aktivImtihonlar} />
+      )}
+
+      <div>
+        <h2 className="text-lg font-bold text-slate-800">📋 Yangi talaba arizalari</h2>
+        <p className="text-sm text-slate-500 mt-0.5">
+          <span className="font-semibold text-slate-700">{royxat.length}</span> ta ariza kutilmoqda
+        </p>
+      </div>
 
       {error && <div className="card text-rose-600">Xatolik: {error.message}</div>}
 

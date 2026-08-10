@@ -7,7 +7,7 @@ const URINISH_SELECT = `
   nazariy_urinish_raqami, amaliy_urinish_raqami,
   nazariy_oqituvchi_id,
   imtihonlar(sana),
-  talabalar(toifa)
+  talabalar(toifa, filiallar(kpi_bor))
 `;
 
 export default async function KpiSahifa() {
@@ -17,14 +17,26 @@ export default async function KpiSahifa() {
     redirect("/dashboard");
   }
 
-  const [{ data: urinishlar, error }, { data: oqituvchilar }] = await Promise.all([
+  const [{ data: urinishlar, error }, { data: oqituvchilar }, { data: erkinArizalar }] = await Promise.all([
     supabase.from("talaba_imtihonlar").select(URINISH_SELECT),
     supabase.from("oqituvchilar").select("id, ism_familya, turi").eq("faol", true),
+    // Tasdiqlangan "erkin talaba" (Telegram bot) arizalari — KPI hisobiga
+    // qo'shiladi, qarang: imtihonHisob.js#oqituvchilarKpiHisoblash.
+    supabase
+      .from("erkin_talaba_arizalari")
+      .select("oqituvchi_id, ism_familya, kpi_hafta, oqituvchilar(ism_familya)")
+      .eq("holati", "tasdiqlangan"),
   ]);
 
   if (error) {
     return <div className="card text-rose-600">Ma'lumotlarni yuklashda xatolik: {error.message}</div>;
   }
 
-  return <KpiClient urinishlar={urinishlar || []} oqituvchilar={oqituvchilar || []} />;
+  return (
+    <KpiClient
+      urinishlar={urinishlar || []}
+      oqituvchilar={oqituvchilar || []}
+      erkinArizalar={erkinArizalar || []}
+    />
+  );
 }

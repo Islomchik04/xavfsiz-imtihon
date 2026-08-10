@@ -90,8 +90,32 @@ export default function YangiTalabaForm({
       return;
     }
 
-    setYuklanmoqda(true);
     const supabase = supabaseBrowser();
+
+    // Bir xil ism+telefon bilan FAOL (arxivlanmagan) talaba allaqachon
+    // borligini tekshiramiz — bu QATTIQ cheklov emas (ba'zi filiallarda
+    // umumiy/vaqtinchalik telefon raqamlari ishlatiladi), shuning uchun
+    // topilsa ogohlantirib, foydalanuvchi tasdiqlasa davom etamiz. Faqat
+    // yangi talaba qo'shishda tekshiramiz — tahrirlashda talabaning o'zini
+    // o'ziga qarshi taqqoslamaslik uchun.
+    if (!tahrirRejimi) {
+      const { data: mavjudlar } = await supabase
+        .from("talabalar")
+        .select("id, ism_familya")
+        .eq("telefon", telefonNormal)
+        .eq("arxivlangan", false)
+        .ilike("ism_familya", ismFamilya.trim());
+      if (mavjudlar && mavjudlar.length > 0) {
+        const davomEtish = window.confirm(
+          `Diqqat! "${mavjudlar[0].ism_familya}" ismli, shu telefon raqami (+998 ${telefonKorinishi(
+            telefonNormal
+          )}) bilan talaba allaqachon ro'yxatda bor.\n\nBaribir yangi talaba sifatida qo'shishni davom ettirasizmi?`
+        );
+        if (!davomEtish) return;
+      }
+    }
+
+    setYuklanmoqda(true);
 
     let guruhId = null;
     if (!expressToifa) {

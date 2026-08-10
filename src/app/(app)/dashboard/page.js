@@ -8,7 +8,7 @@ const URINISH_SELECT = `
   nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija,
   imtihonlar(id, sana),
   talabalar(
-    filial_id, filiallar(nomi), toifa,
+    filial_id, filiallar(nomi, kpi_bor), toifa,
     nazariy_oqituvchi_id,
     nazariy_oqituvchilar:oqituvchilar!nazariy_oqituvchi_id(ism_familya)
   )

@@ -10,14 +10,19 @@ function somKorinishi(son) {
   return new Intl.NumberFormat("uz-UZ").format(son) + " so'm";
 }
 
-export default function KpiClient({ urinishlar, oqituvchilar }) {
+export default function KpiClient({ urinishlar, oqituvchilar, erkinArizalar = [] }) {
   const oylar = useMemo(() => {
     const to_plam = new Set();
     for (const u of urinishlar) {
       if (u.imtihonlar?.sana) to_plam.add(oyKaliti(u.imtihonlar.sana));
     }
+    // Faqat botdan kelgan tasdiqlangan arizasi bor, lekin shu oyda oddiy
+    // imtihon urinishi bo'lmagan oylar ham dropdown'da ko'rinishi kerak.
+    for (const a of erkinArizalar) {
+      if (a.kpi_hafta) to_plam.add(oyKaliti(a.kpi_hafta));
+    }
     return Array.from(to_plam).sort().reverse();
-  }, [urinishlar]);
+  }, [urinishlar, erkinArizalar]);
 
   const [tanlanganOy, setTanlanganOy] = useState(oylar[0] || oyKaliti(new Date().toISOString().slice(0, 10)));
   const [ochiqId, setOchiqId] = useState(null);
@@ -32,9 +37,14 @@ export default function KpiClient({ urinishlar, oqituvchilar }) {
     [tartibliUrinishlar, tanlanganOy]
   );
 
+  const oyErkinArizalari = useMemo(
+    () => erkinArizalar.filter((a) => a.kpi_hafta && oyKaliti(a.kpi_hafta) === tanlanganOy),
+    [erkinArizalar, tanlanganOy]
+  );
+
   const kpiRoyxat = useMemo(
-    () => oqituvchilarKpiHisoblash(oyUrinishlari, oqituvchilar),
-    [oyUrinishlari, oqituvchilar]
+    () => oqituvchilarKpiHisoblash(oyUrinishlari, oqituvchilar, oyErkinArizalari),
+    [oyUrinishlari, oqituvchilar, oyErkinArizalari]
   );
 
   // O'qituvchining BUTUN (oy bilan cheklanmagan) statistikasi — drill-down
@@ -250,6 +260,10 @@ export default function KpiClient({ urinishlar, oqituvchilar }) {
         topshirib) o'tgan bo'lsa, bu o'tish uchun mukofot YOZILMAYDI — faqat birinchi urinishdayoq o'tgan
         talabalar mukofotga hisoblanadi. O'tmagan urinish — necha-urinishligidan qat'i nazar — har doim
         jarimaga hisoblanaveradi.
+        <br />
+        <strong className="text-slate-600">Mustaqil o'quvchilar:</strong> Telegram bot orqali domla yuborgan
+        va Hujjatchi/Superadmin tasdiqlagan "erkin o'quvchi" so'rovlari ham shu jadvalga (tasdiqlangan
+        haftasiga) oddiy 1-urinishda o'tgan sifatida — bir xil 100 000 so'm mukofot bilan — qo'shiladi.
       </div>
 
       {modalOqituvchi && (

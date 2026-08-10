@@ -20,6 +20,7 @@ export default function ImtihonTafsilotClient({
   oqituvchilar,
   sabablar,
   aktivImtihonlar,
+  amaliyBarchaJoylarda,
 }) {
   const router = useRouter();
   // Diqqat: "amaliy o'qituvchi" tushunchasi tizimdan olib tashlangan —
@@ -63,16 +64,19 @@ export default function ImtihonTafsilotClient({
     );
   }, [urinishlar, soz]);
 
-  // Talaba shu imtihon doirasida boshqa (amaliy kerakli) urinishga ega
-  // bo'lsa — "amaliyga qo'shish" tugmasi endi kerak emas (allaqachon
-  // qo'shilgan).
-  const amaliyBorTalabalar = useMemo(() => {
-    const to_plam = new Set();
-    for (const u of urinishlar) {
-      if (u.amaliy_kerak && u.talaba_id) to_plam.add(u.talaba_id);
+  // Talaba ISTALGAN imtihonda (hozirgi yoki boshqasida) amaliy kerakli
+  // urinishga ega bo'lsa — "amaliyga qo'shish" tugmasi endi kerak emas
+  // (allaqachon qo'shilgan). Bu global (barcha imtihonlar bo'yicha) ro'yxat
+  // — talaba boshqa imtihonga amaliyga o'tkazilgan bo'lsa ham shu yerda
+  // ko'rinadi, shu bilan eski imtihon sahifasida qayta-qayta "amaliyga
+  // qo'shish" tugmasi chiqib, dublikat urinish yaratilishining oldi olinadi.
+  const amaliyManzilMap = useMemo(() => {
+    const m = new Map();
+    for (const u of amaliyBarchaJoylarda || []) {
+      if (u.talaba_id && !m.has(u.talaba_id)) m.set(u.talaba_id, u);
     }
-    return to_plam;
-  }, [urinishlar]);
+    return m;
+  }, [amaliyBarchaJoylarda]);
 
   function amaliygaTayyormi(u) {
     const talaba = u.talabalar;
@@ -80,7 +84,7 @@ export default function ImtihonTafsilotClient({
       u.nazariy_kerak &&
       u.nazariy_natija === "otdi" &&
       !u.amaliy_kerak &&
-      !amaliyBorTalabalar.has(u.talaba_id) &&
+      !amaliyManzilMap.has(u.talaba_id) &&
       talaba?.toifa !== "express"
     );
   }
@@ -95,11 +99,11 @@ export default function ImtihonTafsilotClient({
   const amaliydanOtganlar = useMemo(() => filtrlangan.filter(amaliydanOtganmi), [filtrlangan]);
   const nazariydanOtganlar = useMemo(
     () => filtrlangan.filter((u) => amaliygaTayyormi(u) && !amaliydanOtganmi(u)),
-    [filtrlangan, amaliyBorTalabalar]
+    [filtrlangan, amaliyManzilMap]
   );
   const qolganlar = useMemo(
     () => filtrlangan.filter((u) => !amaliygaTayyormi(u) && !amaliydanOtganmi(u)),
-    [filtrlangan, amaliyBorTalabalar]
+    [filtrlangan, amaliyManzilMap]
   );
 
   function yangilaUrinish(id, oz) {
@@ -293,21 +297,26 @@ export default function ImtihonTafsilotClient({
             {nazariydanOtganlar.length > 0 && (
               <h2 className="text-sm font-semibold text-slate-500">Barcha ishtirokchilar</h2>
             )}
-            {qolganlar.map((u) => (
-              <UrinishKartochka
-                key={u.id}
-                urinish={u}
-                tahrirRuxsat={natijaBelgilashRuxsat}
-                otkazishRuxsat={otkazishRuxsat}
-                sabablar={sabablar}
-                imtihonId={imtihon.id}
-                nazariyOqituvchilar={nazariyOqituvchilarRoyxati}
-                imtihonBoshlandimi={imtihonBoshlandimi}
-                amaliygaTaklifQilish={false}
-                onYangilash={(oz) => yangilaUrinish(u.id, oz)}
-                onOtkazildi={() => router.refresh()}
-              />
-            ))}
+            {qolganlar.map((u) => {
+              const manzil = amaliyManzilMap.get(u.talaba_id);
+              const boshqaImtihonda = manzil && manzil.imtihon_id !== imtihon.id;
+              return (
+                <UrinishKartochka
+                  key={u.id}
+                  urinish={u}
+                  tahrirRuxsat={natijaBelgilashRuxsat}
+                  otkazishRuxsat={otkazishRuxsat}
+                  sabablar={sabablar}
+                  imtihonId={imtihon.id}
+                  nazariyOqituvchilar={nazariyOqituvchilarRoyxati}
+                  imtihonBoshlandimi={imtihonBoshlandimi}
+                  amaliygaTaklifQilish={false}
+                  amaliyManzil={boshqaImtihonda ? manzil : null}
+                  onYangilash={(oz) => yangilaUrinish(u.id, oz)}
+                  onOtkazildi={() => router.refresh()}
+                />
+              );
+            })}
           </div>
         </div>
       )}
@@ -557,6 +566,7 @@ function UrinishKartochka({
   imtihonBoshlandimi,
   amaliygaTaklifQilish,
   aktivImtihonlar,
+  amaliyManzil,
   onYangilash,
   onOtkazildi,
 }) {
@@ -592,6 +602,15 @@ function UrinishKartochka({
           </div>
         </div>
         {amaliygaTaklifQilish && <span className="badge bg-emerald-100 text-emerald-700 text-xs shrink-0">✓ Nazariydan o'tgan</span>}
+        {amaliyManzil && (
+          <Link
+            href={`/imtihonlar/${amaliyManzil.imtihon_id}`}
+            className="badge bg-sky-100 text-sky-700 text-xs shrink-0 hover:bg-sky-200"
+            title="Bu talaba boshqa imtihonga amaliyga yuborilgan"
+          >
+            → Amaliyga yuborilgan: {sanaKorinishi(amaliyManzil.imtihonlar?.sana)}
+          </Link>
+        )}
       </div>
 
       <div className="mt-4 space-y-3">

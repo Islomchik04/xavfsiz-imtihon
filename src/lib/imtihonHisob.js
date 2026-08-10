@@ -2,6 +2,16 @@
 // hafta/oy guruhlash va KPI (maosh) formulasi. Sof funksiyalar — server
 // komponentlarda fetch qilingan ma'lumot ustida ishlatiladi.
 
+// Bitta urinish (talaba_imtihonlar qatori) KPI/o'qituvchi statistikasi
+// hisobidan chiqarib tashlanishi kerakmi — ikkita mustaqil sabab bo'lishi
+// mumkin: talaba "express" toifada (o'zi shunday tanlangan), YOKI uning
+// filiali "KPI yo'q" deb belgilangan (Sozlamalar → Filiallar, faqat
+// superadmin o'rnatadi). Urinish shu funksiya orqali tekshirilishi uchun
+// select so'rovida talabalar(toifa, filiallar(kpi_bor)) bo'lishi kerak.
+export function kpigaKirmaydimi(u) {
+  return u.talabalar?.toifa === "express" || u.talabalar?.filiallar?.kpi_bor === false;
+}
+
 // --- Sana yordamchilari -----------------------------------------------------
 
 // Berilgan "YYYY-MM-DD" sana qaysi haftaga (Dushanba-Yakshanba) tegishli
@@ -183,11 +193,17 @@ export function kpiDaraja(otgan, otmagan) {
 // boshqa o'qituvchiga o'tkazilsa ham bu o'zgarmaydi), talaba.filial_id,
 // talaba.toifa
 // oqituvchilar: {id, ism_familya, turi} ro'yxati
+// erkinArizalar: TASDIQLANGAN "erkin talaba" (Telegram bot orqali, o'zi
+// mustaqil imtihon topshirgan o'quvchi) arizalari — {oqituvchi_id, kpi_hafta}
+// ro'yxati (ixtiyoriy). Har bir tasdiqlangan ariza xuddi 1-urinishda o'tgan
+// nazariy natija kabi hisoblanadi (bir xil 100 000 so'm mukofot formulasi
+// — qarang: kpiDaraja) — qarang: erkin_talaba_arizalari jadvali,
+// erkin_arizani_tasdiqlash() RPC'si.
 //
 // Diqqat: "amaliy o'qituvchi" tushunchasi tizimdan olib tashlangan — amaliy
 // natijalar (otdi/otmadi) KPI hisobiga UMUMAN kiritilmaydi, faqat nazariy
 // natijalar bo'yicha o'qituvchiga mukofot/jarima hisoblanadi.
-export function oqituvchilarKpiHisoblash(urinishlar, oqituvchilar) {
+export function oqituvchilarKpiHisoblash(urinishlar, oqituvchilar, erkinArizalar = []) {
   const oqMap = new Map(oqituvchilar.map((o) => [o.id, o]));
   // oqituvchi_id -> hafta -> {otgan, otmagan}
   const hisob = new Map();
@@ -215,9 +231,9 @@ export function oqituvchilarKpiHisoblash(urinishlar, oqituvchilar) {
   for (const u of urinishlar) {
     const sana = u.imtihonlar?.sana;
     if (!sana) continue;
-    // Express toifadagi talabalar o'qituvchiga umuman biriktirilmaydi va
-    // KPI hisobiga kirmaydi (na mukofot, na jarima).
-    if (u.talabalar?.toifa === "express") continue;
+    // Express toifadagi talabalar va "KPI yo'q" filialidagi talabalar
+    // o'qituvchi KPI hisobiga umuman kirmaydi (na mukofot, na jarima).
+    if (kpigaKirmaydimi(u)) continue;
     const hafta = haftaBoshi(sana);
     if (u.nazariy_kerak && (u.nazariy_natija === "otdi" || u.nazariy_natija === "otmadi")) {
       const otdimi = u.nazariy_natija === "otdi";
@@ -233,6 +249,13 @@ export function oqituvchilarKpiHisoblash(urinishlar, oqituvchilar) {
     }
     // Amaliy natijalar KPI hisobiga kiritilmaydi — "amaliy o'qituvchi"
     // tushunchasi olib tashlangan.
+  }
+
+  // Tasdiqlangan "erkin talaba" arizalari — har biri xuddi 1-urinishda
+  // o'tgan nazariy natija kabi shu domlaning shu haftasiga qo'shiladi.
+  for (const a of erkinArizalar) {
+    if (!a.kpi_hafta) continue;
+    qoshish(a.oqituvchi_id, haftaBoshi(a.kpi_hafta), true);
   }
 
   const natija = [];

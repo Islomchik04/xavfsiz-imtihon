@@ -1,9 +1,11 @@
 // talaba_imtihonlar (urinish) qatorlaridan statistik ko'rsatkichlarni
 // hisoblaydigan sof funksiyalar. Har bir urinish qatorida quyidagilar bo'lishi
 // kutiladi: nazariy_kerak, amaliy_kerak, nazariy_natija, amaliy_natija,
-// created_at, imtihonlar:{sana}, talabalar:{filial_id, filiallar:{nomi},
-// nazariy_oqituvchi_id, amaliy_oqituvchi_id,
+// created_at, imtihonlar:{sana}, talabalar:{filial_id, filiallar:{nomi,
+// kpi_bor}, toifa, nazariy_oqituvchi_id, amaliy_oqituvchi_id,
 // nazariy_oqituvchilar:{ism_familya}, amaliy_oqituvchilar:{ism_familya}}
+
+import { kpigaKirmaydimi } from "./imtihonHisob";
 
 function qismlarNatijasi(u) {
   // Bitta urinishning "umumiy" natijasi: kerakli qismlardan birortasi
@@ -109,9 +111,9 @@ export function oqituvchiBoyichaStatistika(urinishlar, turi) {
   const guruh = new Map();
   for (const u of urinishlar) {
     if (!u[kerakMaydon]) continue;
-    // Express toifadagi talabalar KPI/statistikaga hech qachon kirmaydi —
-    // o'qituvchi biriktirilgan bo'lsa ham.
-    if (u.talabalar?.toifa === "express") continue;
+    // Express toifadagi talabalar VA "KPI yo'q" filialidagi talabalar
+    // KPI/statistikaga hech qachon kirmaydi — o'qituvchi biriktirilgan bo'lsa ham.
+    if (kpigaKirmaydimi(u)) continue;
     const id = u[oqIdMaydon] ?? u.talabalar?.[oqIdMaydon];
     if (!id) continue;
     const ism = u.talabalar?.[oqObjMaydon]?.ism_familya || "Noma'lum";
@@ -165,8 +167,9 @@ export function oqituvchilarReytingi(urinishlar, guruhKaliti) {
   for (const u of urinishlar) {
     const kalit = guruhKaliti(u);
     if (!kalit) continue;
-    // Express toifadagi talabalar reytingga hech qachon kirmaydi.
-    if (u.talabalar?.toifa === "express") continue;
+    // Express toifadagi talabalar va "KPI yo'q" filialidagi talabalar
+    // reytingga hech qachon kirmaydi.
+    if (kpigaKirmaydimi(u)) continue;
     if (u.nazariy_kerak && (u.nazariy_natija === "otdi" || u.nazariy_natija === "otmadi")) {
       qoshish(
         kalit,
@@ -208,8 +211,9 @@ export function davrBoyichaStatistika(urinishlar, kalitFn, korinishFn) {
   for (const u of urinishlar) {
     const kalit = kalitFn(u);
     if (!kalit) continue;
-    // Express toifadagi talabalar bu jamlarga ham kirmaydi.
-    if (u.talabalar?.toifa === "express") continue;
+    // Express toifadagi talabalar va "KPI yo'q" filialidagi talabalar bu
+    // jamlarga ham kirmaydi.
+    if (kpigaKirmaydimi(u)) continue;
     if (!jamlar.has(kalit)) jamlar.set(kalit, { jami: 0, otgan: 0, otmagan: 0 });
     const y = jamlar.get(kalit);
     if (u.nazariy_kerak && (u.nazariy_natija === "otdi" || u.nazariy_natija === "otmadi")) {
