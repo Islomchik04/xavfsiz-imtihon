@@ -30,8 +30,10 @@ export default function TalabaniOchirish({ talabaId, ismFamilya }) {
       return;
     }
 
-    router.push("/talabalar");
-    router.refresh();
+    // Diqqat: har doim "/talabalar"ga emas — foydalanuvchi qaysi ro'yxatdan
+    // (arizalar, amaliy arizalar, arxiv va h.k.) kelgan bo'lsa, o'chirgandan
+    // keyin ham o'sha ro'yxatga qaytishi kerak, "Talabalar" bo'limiga emas.
+    router.back();
   }
 
   return (

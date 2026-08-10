@@ -157,6 +157,7 @@ export default async function ArizalarSahifa({ searchParams }) {
         radEtishRuxsat={radEtishRuxsat}
         imtihonlar={faolImtihonlar}
         ommaviyTasdiqRuxsat={radEtishRuxsat}
+        ommaviyOchirishRuxsat={profile.role === "superadmin"}
       />
 
       {radEtishRuxsat && (

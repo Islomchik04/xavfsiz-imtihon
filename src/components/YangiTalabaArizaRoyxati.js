@@ -26,6 +26,11 @@ import ArizaRadEtishTugmasi from "@/components/ArizaRadEtishTugmasi";
 // (hujjatga_tayyorlash RPC'si har bir talaba uchun alohida chaqiriladi,
 // shuning uchun ba'zilari xato bersa ham — masalan qarzdorlik tufayli —
 // qolganlari baribir muvaffaqiyatli bajariladi).
+//
+// ommaviyOchirishRuxsat=true bo'lsa (faqat Superadmin) — belgilangan
+// talabalarni bazadan butunlay o'chirish mumkin (talaba sahifasidagi
+// "Talabani o'chirish" tugmasining ommaviy versiyasi) — bu amalni
+// orqaga qaytarib bo'lmaydi.
 export default function YangiTalabaArizaRoyxati({
   royxat,
   error,
@@ -33,14 +38,17 @@ export default function YangiTalabaArizaRoyxati({
   radEtishRuxsat = false,
   imtihonlar = [],
   ommaviyTasdiqRuxsat = false,
+  ommaviyOchirishRuxsat = false,
 }) {
   const router = useRouter();
+  const belgilashRuxsat = ommaviyTasdiqRuxsat || ommaviyOchirishRuxsat;
   const [tanlangan, setTanlangan] = useState(new Set());
   const [panelOchiq, setPanelOchiq] = useState(false);
   const [imtihonId, setImtihonId] = useState("");
   const [izoh, setIzoh] = useState("");
   const [umumiyXato, setUmumiyXato] = useState("");
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
+  const [ochirishYuklanmoqda, setOchirishYuklanmoqda] = useState(false);
   const [natijalar, setNatijalar] = useState(null);
 
   const barchaTanlanganmi = royxat.length > 0 && royxat.every((t) => tanlangan.has(t.id));
@@ -113,27 +121,73 @@ export default function YangiTalabaArizaRoyxati({
     }
   }
 
+  async function ommaviyOchirish() {
+    const tanlanganlar = royxat.filter((t) => tanlangan.has(t.id));
+    const tasdiq = confirm(
+      `${tanlanganlar.length} ta talabani butunlay o'chirmoqchimisiz?\n\nDIQQAT: bu talabalarning barcha imtihon urinishlari va tarixi ham birga o'chib ketadi. Bu amalni orqaga qaytarib bo'lmaydi.`
+    );
+    if (!tasdiq) return;
+
+    setOchirishYuklanmoqda(true);
+    setNatijalar(null);
+
+    const supabase = supabaseBrowser();
+    const natija = [];
+    for (const t of tanlanganlar) {
+      const { error: xato } = await supabase.from("talabalar").delete().eq("id", t.id);
+      natija.push({ id: t.id, ism_familya: t.ism_familya, ok: !xato, xato: xato?.message });
+    }
+
+    setOchirishYuklanmoqda(false);
+    setNatijalar(natija);
+    const muvaffaqiyatli = new Set(natija.filter((n) => n.ok).map((n) => n.id));
+    if (muvaffaqiyatli.size > 0) {
+      setTanlangan((prev) => {
+        const yangi = new Set(prev);
+        muvaffaqiyatli.forEach((id) => yangi.delete(id));
+        return yangi;
+      });
+      router.refresh();
+    }
+  }
+
   const tanlanganSoni = tanlangan.size;
 
   return (
     <>
       {error && <div className="card text-rose-600">Xatolik: {error.message}</div>}
 
-      {ommaviyTasdiqRuxsat && tanlanganSoni > 0 && (
+      {belgilashRuxsat && tanlanganSoni > 0 && (
         <div className="card border border-brand-200 bg-brand-50/50 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-sm font-semibold text-brand-800">
               {tanlanganSoni} ta talaba tanlandi
             </span>
             <div className="flex gap-2">
-              {!panelOchiq && (
-                <button type="button" className="btn-primary !py-1.5 !px-3 !text-sm" onClick={panelniOchish}>
+              {ommaviyTasdiqRuxsat && !panelOchiq && (
+                <button
+                  type="button"
+                  className="btn-primary !py-1.5 !px-3 !text-sm"
+                  disabled={ochirishYuklanmoqda}
+                  onClick={panelniOchish}
+                >
                   Imtihonga biriktirish
+                </button>
+              )}
+              {ommaviyOchirishRuxsat && (
+                <button
+                  type="button"
+                  className="btn !py-1.5 !px-3 !text-sm !text-rose-600 !border-rose-200 hover:!bg-rose-50"
+                  disabled={ochirishYuklanmoqda || yuklanmoqda}
+                  onClick={ommaviyOchirish}
+                >
+                  {ochirishYuklanmoqda ? "O'chirilmoqda…" : "🗑 O'chirish"}
                 </button>
               )}
               <button
                 type="button"
                 className="btn !py-1.5 !px-3 !text-sm"
+                disabled={ochirishYuklanmoqda}
                 onClick={() => {
                   setTanlangan(new Set());
                   setPanelOchiq(false);
@@ -212,7 +266,7 @@ export default function YangiTalabaArizaRoyxati({
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-slate-400 border-b border-slate-100">
-              {ommaviyTasdiqRuxsat && (
+              {belgilashRuxsat && (
                 <th className="pb-2 font-medium w-8">
                   <input type="checkbox" checked={barchaTanlanganmi} onChange={hammasiniAlmashtirish} />
                 </th>
@@ -231,7 +285,7 @@ export default function YangiTalabaArizaRoyxati({
           <tbody>
             {royxat.map((t) => (
               <tr key={t.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50">
-                {ommaviyTasdiqRuxsat && (
+                {belgilashRuxsat && (
                   <td className="py-2.5">
                     <input type="checkbox" checked={tanlangan.has(t.id)} onChange={() => bittaniAlmashtirish(t.id)} />
                   </td>
@@ -282,7 +336,7 @@ export default function YangiTalabaArizaRoyxati({
             {royxat.length === 0 && !error && (
               <tr>
                 <td
-                  colSpan={(ommaviyTasdiqRuxsat ? 1 : 0) + (radEtishRuxsat ? 9 : 8)}
+                  colSpan={(belgilashRuxsat ? 1 : 0) + (radEtishRuxsat ? 9 : 8)}
                   className="py-8 text-center text-slate-400"
                 >
                   Hozircha ariza yo'q
@@ -297,7 +351,7 @@ export default function YangiTalabaArizaRoyxati({
         {royxat.length === 0 && !error && (
           <div className="card text-center text-slate-400">Hozircha ariza yo'q</div>
         )}
-        {ommaviyTasdiqRuxsat && royxat.length > 0 && (
+        {belgilashRuxsat && royxat.length > 0 && (
           <label className="flex items-center gap-2 text-sm text-slate-500 px-1">
             <input type="checkbox" checked={barchaTanlanganmi} onChange={hammasiniAlmashtirish} />
             Hammasini tanlash
@@ -305,7 +359,7 @@ export default function YangiTalabaArizaRoyxati({
         )}
         {royxat.map((t) => (
           <div key={t.id} className="card active:scale-[0.98] transition-transform">
-            {ommaviyTasdiqRuxsat && (
+            {belgilashRuxsat && (
               <label className="flex items-center gap-2 mb-2 text-xs text-slate-500">
                 <input type="checkbox" checked={tanlangan.has(t.id)} onChange={() => bittaniAlmashtirish(t.id)} />
                 Tanlash

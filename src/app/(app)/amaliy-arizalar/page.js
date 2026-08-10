@@ -242,6 +242,7 @@ export default async function AmaliyArizalarSahifa({ searchParams }) {
           radEtishRuxsat={radEtishRuxsat}
           imtihonlar={aktivImtihonlar}
           ommaviyTasdiqRuxsat={radEtishRuxsat}
+          ommaviyOchirishRuxsat={profile.role === "superadmin"}
         />
       </div>
 
