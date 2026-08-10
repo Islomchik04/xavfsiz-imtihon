@@ -7,27 +7,17 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { sanaKorinishi } from "@/lib/imtihonHisob";
 
 // Filial admini (yoki hujjatchi/imtihonchi/superadmin) yuborgan "Amaliy
-// imtihonga yuborish" so'rovlari — yangi talaba arizalaridan AJRATILGAN
-// alohida bo'lim. Hujjatchi/imtihonchi/superadmin bu yerdan tasdiqlaydi
-// (imtihon tanlab) yoki rad etadi.
-export default function AmaliyArizaBolimi({ arizalar, aktivImtihonlar }) {
+// imtihonga yuborish" so'rovlari ro'yxati. Hujjatchi/imtihonchi/superadmin
+// bu yerdan tasdiqlaydi (imtihon tanlab) yoki rad etadi.
+export default function ArizaRoyxati({ arizalar, aktivImtihonlar }) {
+  if (arizalar.length === 0) {
+    return <div className="card text-sm text-slate-400">Hozircha so'rov yo'q.</div>;
+  }
   return (
-    <div className="space-y-3">
-      <div>
-        <h2 className="text-lg font-bold text-slate-800">🚗 Amaliy imtihon so'rovlari</h2>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Filial adminlari nazariydan o'tgan talabalarni amaliy imtihonga yuborish uchun so'rov qoldirgan.
-        </p>
-      </div>
-      {arizalar.length === 0 ? (
-        <div className="card text-sm text-slate-400">Hozircha so'rov yo'q.</div>
-      ) : (
-        <div className="space-y-3 xi-stagger">
-          {arizalar.map((a) => (
-            <ArizaKartochka key={a.id} ariza={a} aktivImtihonlar={aktivImtihonlar} />
-          ))}
-        </div>
-      )}
+    <div className="space-y-3 xi-stagger">
+      {arizalar.map((a) => (
+        <ArizaKartochka key={a.id} ariza={a} aktivImtihonlar={aktivImtihonlar} />
+      ))}
     </div>
   );
 }

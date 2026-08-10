@@ -3,15 +3,18 @@ import { joriyFoydalanuvchi } from "@/lib/joriyFoydalanuvchi";
 import Badge from "@/components/Badge";
 import { IMTIHON_TURI, TOIFALAR } from "@/lib/constants";
 import { telefonKorinishi } from "@/lib/telefon";
-import AmaliyArizaBolimi from "./AmaliyArizaBolimi";
-import ErkinArizaBolimi from "./ErkinArizaBolimi";
 
 // Adminlar (yoki hujjatchi/superadmin) tomonidan "Yangi talaba" orqali
 // qo'shilgan, lekin hujjatchi hali hujjatini tayyor deb belgilamagan
-// talabalar shu yerda — "ariza" sifatida — turadi. Hujjatchi
-// /talabalar/[id] sahifasida "Hujjat holati" bo'limidan hujjatni tayyor deb
-// belgilagach, talaba shu ro'yxatdan avtomatik chiqib "Talabalar"
-// bo'limiga o'tadi (talabalar/page.js hujjat_tayyor=true filtri orqali).
+// talabalar shu yerda — "nazariy imtihon arizasi" sifatida — turadi.
+// Hujjatchi /talabalar/[id] sahifasida "Hujjat holati" bo'limidan hujjatni
+// tayyor deb belgilagach, talaba shu ro'yxatdan avtomatik chiqib
+// "Talabalar" bo'limiga o'tadi (talabalar/page.js hujjat_tayyor=true
+// filtri orqali).
+//
+// Diqqat: bu sahifa faqat SHU (nazariy/hujjat) arizalarni ko'rsatadi.
+// "Amaliy imtihon arizalari" — /amaliy-arizalar, "Mustaqil imtihonchilar"
+// (Telegram bot) — /mustaqil-imtihonchilar sahifalarida alohida.
 const TALABA_SELECT = `
   id, ism_familya, telefon, intalim_id, toifa, imtihon_turi, created_at,
   filiallar(id, nomi), guruhlar(nomi),
@@ -19,7 +22,7 @@ const TALABA_SELECT = `
 `;
 
 export default async function ArizalarSahifa({ searchParams }) {
-  const { profile, supabase } = await joriyFoydalanuvchi();
+  const { supabase } = await joriyFoydalanuvchi();
   const q = searchParams?.q?.trim() || "";
   const toifaFiltr = searchParams?.toifa || "";
   const filialFiltr = searchParams?.filial || "";
@@ -37,76 +40,19 @@ export default async function ArizalarSahifa({ searchParams }) {
   const { data: royxatXom, error } = await so_rov.limit(300);
   const royxat = royxatXom || [];
 
-  // Filial bo'yicha filtr qilish uchun — Hujjatchi/superadmin/imtihonchi
-  // barcha filiallarni ko'radi, Admin RLS orqali baribir faqat o'z
-  // filialini ko'radi (dropdown baribir zararsiz).
+  // Filial bo'yicha filtr qilish uchun — Hujjatchi/superadmin barcha
+  // filiallarni ko'radi, Admin RLS orqali baribir faqat o'z filialini
+  // ko'radi (dropdown baribir zararsiz).
   const { data: filiallar } = await supabase
     .from("filiallar")
     .select("id, nomi")
     .eq("faol", true)
     .order("nomi");
 
-  // "Amaliy imtihon so'rovlari" — faqat Hujjatchi/imtihonchi/superadmin
-  // ko'rib chiqadi (tasdiqlash/rad etish huquqi ham shularda).
-  const amaliyArizaRuxsat = ["hujjatchi", "imtihonchi", "superadmin"].includes(profile.role);
-  let amaliyArizalar = [];
-  let aktivImtihonlar = [];
-  if (amaliyArizaRuxsat) {
-    let amaliySo_rov = supabase
-      .from("amaliy_arizalar")
-      .select(
-        `
-        id, izoh, created_at, holati,
-        talabalar!inner(id, ism_familya, intalim_id, filial_id, filiallar(nomi), guruhlar(nomi)),
-        soragan_profil:profiles!soragan(ism_familya)
-      `
-      )
-      .eq("holati", "kutilmoqda")
-      .order("created_at", { ascending: false });
-    if (filialFiltr) amaliySo_rov = amaliySo_rov.eq("talabalar.filial_id", filialFiltr);
-    const [{ data: amaliyData }, { data: imtihonlarData }] = await Promise.all([
-      amaliySo_rov,
-      supabase
-        .from("imtihonlar")
-        .select("id, sana, izoh, holati")
-        .in("holati", ["boshlanmagan", "boshlangan"])
-        .order("sana", { ascending: false }),
-    ]);
-    amaliyArizalar = amaliyData || [];
-    aktivImtihonlar = imtihonlarData || [];
-  }
-
-  // "Mustaqil o'quvchilar (Telegram bot)" — foydalanuvchining tanloviga
-  // ko'ra faqat Hujjatchi/Superadmin ko'rib chiqadi va tasdiqlaydi (RLS ham
-  // shu ikkalasiga select ruxsat beradi — qarang: erkin_talaba_arizalari
-  // jadvali, 0023-migratsiya).
-  const erkinArizaRuxsat = ["hujjatchi", "superadmin"].includes(profile.role);
-  let erkinArizalar = [];
-  if (erkinArizaRuxsat) {
-    const { data: erkinData } = await supabase
-      .from("erkin_talaba_arizalari")
-      .select(`
-        id, ism_familya, telefon, urinish_raqami, izoh, rasm_yoli, created_at,
-        oqituvchilar(ism_familya)
-      `)
-      .eq("holati", "kutilmoqda")
-      .order("created_at", { ascending: false });
-
-    erkinArizalar = await Promise.all(
-      (erkinData || []).map(async (a) => {
-        if (!a.rasm_yoli) return { ...a, rasmUrl: null };
-        const { data: imza } = await supabase.storage
-          .from("erkin-fotolar")
-          .createSignedUrl(a.rasm_yoli, 3600);
-        return { ...a, rasmUrl: imza?.signedUrl || null };
-      })
-    );
-  }
-
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-slate-800">📝 Arizalar</h1>
+        <h1 className="text-xl font-bold text-slate-800">📋 Nazariy imtihon arizalari</h1>
         <p className="text-sm text-slate-500 mt-0.5">
           Adminlar yuborgan, hujjati hali tasdiqlanmagan talabalar. Hujjat tayyor deb belgilangach —
           avtomatik "Talabalar" bo'limiga o'tadi.
@@ -139,18 +85,9 @@ export default async function ArizalarSahifa({ searchParams }) {
         <button className="btn-secondary" type="submit">Qidirish</button>
       </form>
 
-      {erkinArizaRuxsat && <ErkinArizaBolimi arizalar={erkinArizalar} />}
-
-      {amaliyArizaRuxsat && (
-        <AmaliyArizaBolimi arizalar={amaliyArizalar} aktivImtihonlar={aktivImtihonlar} />
-      )}
-
-      <div>
-        <h2 className="text-lg font-bold text-slate-800">📋 Yangi talaba arizalari</h2>
-        <p className="text-sm text-slate-500 mt-0.5">
-          <span className="font-semibold text-slate-700">{royxat.length}</span> ta ariza kutilmoqda
-        </p>
-      </div>
+      <p className="text-sm text-slate-500">
+        <span className="font-semibold text-slate-700">{royxat.length}</span> ta ariza kutilmoqda
+      </p>
 
       {error && <div className="card text-rose-600">Xatolik: {error.message}</div>}
 
