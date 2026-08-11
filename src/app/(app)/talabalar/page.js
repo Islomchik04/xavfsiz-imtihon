@@ -6,6 +6,7 @@ import { talabaHolati, birUrinishdaOtganmi, qismHolati, oxirgiUrinish, sanaKorin
 import { telefonKorinishi } from "@/lib/telefon";
 import { guruhBoyichaSaralash } from "@/lib/saralash";
 import RadEtilganArizalarRoyxati from "@/components/RadEtilganArizalarRoyxati";
+import AutoQidiruvFormi from "@/components/AutoQidiruvFormi";
 
 const TALABA_SELECT = `
   id, ism_familya, telefon, intalim_id, toifa, imtihon_turi, forma_083, hujjat_tayyor, qarzdorlik, qarzdorlik_summasi,
@@ -130,7 +131,7 @@ export default async function TalabalarSahifa({ searchParams }) {
         )}
       </div>
 
-      <form className="card flex flex-wrap gap-3 items-end" method="get">
+      <AutoQidiruvFormi className="card flex flex-wrap gap-3 items-end">
         <div className="flex-1 min-w-[200px]">
           <label className="label">Ism familya yoki Int'alim ID bo'yicha qidirish</label>
           <input className="input" type="text" name="q" defaultValue={q} placeholder="Masalan: Aliyev Vali yoki 1234567" />
@@ -177,7 +178,7 @@ export default async function TalabalarSahifa({ searchParams }) {
           </select>
         </div>
         <button className="btn-secondary" type="submit">Qidirish</button>
-      </form>
+      </AutoQidiruvFormi>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-500">

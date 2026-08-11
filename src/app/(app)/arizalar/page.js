@@ -3,6 +3,7 @@ import { TOIFALAR } from "@/lib/constants";
 import { guruhBoyichaSaralash } from "@/lib/saralash";
 import YangiTalabaArizaRoyxati from "@/components/YangiTalabaArizaRoyxati";
 import RadEtilganArizalarRoyxati from "@/components/RadEtilganArizalarRoyxati";
+import AutoQidiruvFormi from "@/components/AutoQidiruvFormi";
 
 // Adminlar (yoki hujjatchi/superadmin) tomonidan "Yangi talaba" orqali
 // qo'shilgan, lekin hujjatchi hali hujjatini tayyor deb belgilamagan
@@ -104,7 +105,7 @@ export default async function ArizalarSahifa({ searchParams }) {
         </p>
       </div>
 
-      <form className="card flex flex-wrap gap-3 items-end" method="get">
+      <AutoQidiruvFormi className="card flex flex-wrap gap-3 items-end">
         <div className="flex-1 min-w-[200px]">
           <label className="label">Ism familya yoki Int'alim ID bo'yicha qidirish</label>
           <input className="input" type="text" name="q" defaultValue={q} placeholder="Masalan: Aliyev Vali yoki 1234567" />
@@ -144,7 +145,7 @@ export default async function ArizalarSahifa({ searchParams }) {
           </select>
         </div>
         <button className="btn-secondary" type="submit">Qidirish</button>
-      </form>
+      </AutoQidiruvFormi>
 
       <p className="text-sm text-slate-500">
         <span className="font-semibold text-slate-700">{royxat.length}</span> ta ariza kutilmoqda

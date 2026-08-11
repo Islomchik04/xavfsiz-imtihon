@@ -4,6 +4,7 @@ import { TOIFALAR } from "@/lib/constants";
 import { guruhBoyichaSaralash } from "@/lib/saralash";
 import YangiTalabaArizaRoyxati from "@/components/YangiTalabaArizaRoyxati";
 import RadEtilganArizalarRoyxati from "@/components/RadEtilganArizalarRoyxati";
+import AutoQidiruvFormi from "@/components/AutoQidiruvFormi";
 import ArizaRoyxati from "./ArizaRoyxati";
 import TayyorTalabaKartochka from "./TayyorTalabaKartochka";
 
@@ -188,7 +189,7 @@ export default async function AmaliyArizalarSahifa({ searchParams }) {
         </p>
       </div>
 
-      <form className="card flex flex-wrap gap-3 items-end" method="get">
+      <AutoQidiruvFormi className="card flex flex-wrap gap-3 items-end">
         <div className="flex-1 min-w-[200px]">
           <label className="label">Ism familya yoki Int'alim ID bo'yicha qidirish</label>
           <input className="input" type="text" name="q" defaultValue={q} placeholder="Masalan: Aliyev Vali yoki 1234567" />
@@ -228,7 +229,7 @@ export default async function AmaliyArizalarSahifa({ searchParams }) {
           </select>
         </div>
         <button className="btn-secondary" type="submit">Qidirish</button>
-      </form>
+      </AutoQidiruvFormi>
 
       <div className="space-y-3">
         <h2 className="text-lg font-bold text-slate-800">
