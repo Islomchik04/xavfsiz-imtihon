@@ -66,7 +66,7 @@ export default function OqituvchilarClient({ boshlangichOqituvchilar }) {
         <h2 className="font-semibold text-slate-800">Yangi o'qituvchi</h2>
         <div>
           <label className="label">Ism familya</label>
-          <input className="input" value={ismFamilya} onChange={(e) => setIsmFamilya(e.target.value)} required />
+          <input className="input" value={ismFamilya} onChange={(e) => setIsmFamilya(e.target.value.toUpperCase())} required />
         </div>
         <div>
           <label className="label">Turi</label>
@@ -276,7 +276,7 @@ function OqituvchiTahrirForma({ oqituvchi, onBekor, onSaqlandi }) {
       <div className="grid sm:grid-cols-2 gap-3">
         <div>
           <label className="label">Ism familya</label>
-          <input className="input" value={ismFamilya} onChange={(e) => setIsmFamilya(e.target.value)} required />
+          <input className="input" value={ismFamilya} onChange={(e) => setIsmFamilya(e.target.value.toUpperCase())} required />
         </div>
         <div>
           <label className="label">Turi</label>

@@ -202,8 +202,8 @@ export default function YangiTalabaForm({
         <input
           className="input"
           value={ismFamilya}
-          onChange={(e) => setIsmFamilya(e.target.value)}
-          placeholder="Masalan: Aliyev Vali Aliyevich"
+          onChange={(e) => setIsmFamilya(e.target.value.toUpperCase())}
+          placeholder="Masalan: ALIYEV VALI ALIYEVICH"
           required
         />
       </div>

@@ -84,7 +84,7 @@ export async function POST(so_rov) {
       return String(q).trim();
     };
 
-    const ismFamilya = matn(1);
+    const ismFamilya = matn(1).toUpperCase();
     const telefonMatni = matn(2);
     const toifaMatni = matn(3);
     const guruhRaqami = matn(4);
