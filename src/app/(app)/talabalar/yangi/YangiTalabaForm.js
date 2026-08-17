@@ -38,9 +38,7 @@ export default function YangiTalabaForm({
     tahrirlanayotgan?.qarzdorlik_summasi != null ? String(tahrirlanayotgan.qarzdorlik_summasi) : ""
   );
   const [guruhRaqami, setGuruhRaqami] = useState(tahrirlanayotgan?.guruhlar?.nomi || "");
-  const [forma083, setForma083] = useState(
-    tahrirlanayotgan ? (tahrirlanayotgan.forma_083 ? "tayyor" : "tayyor_emas") : ""
-  );
+  const [forma083, setForma083] = useState(tahrirlanayotgan?.forma_083 || "");
   const [imtihonTuri, setImtihonTuri] = useState(tahrirlanayotgan?.imtihon_turi || "");
   const [nazariyOqituvchiId, setNazariyOqituvchiId] = useState(
     tahrirlanayotgan?.nazariy_oqituvchi_id || ""
@@ -142,7 +140,7 @@ export default function YangiTalabaForm({
       qarzdorlik_summasi: qarzdorlik === "bor" ? qarzdorlikSoni : null,
       filial_id: filialId,
       guruh_id: guruhId,
-      forma_083: forma083 === "tayyor",
+      forma_083: forma083 || "yoq",
       imtihon_turi: imtihonTuri,
       nazariy_oqituvchi_id: oqituvchiTanlanadi && nazariyOqituvchiId ? nazariyOqituvchiId : null,
       istalgan_imtihon_id: istalganImtihonId || null,
@@ -325,12 +323,12 @@ export default function YangiTalabaForm({
       <div>
         <label className="label">083 forma (ixtiyoriy)</label>
         <div className="flex gap-3">
-          {["tayyor", "tayyor_emas"].map((v) => (
+          {Object.entries(FORMA_083_LABEL).map(([v, matn]) => (
             <label key={v} className={`flex-1 border rounded-xl px-4 py-2.5 text-center cursor-pointer text-sm font-medium ${
               forma083 === v ? "border-brand-500 bg-brand-50 text-brand-700" : "border-slate-300 text-slate-600"
             }`}>
               <input type="radio" name="forma083" value={v} className="hidden" onChange={(e) => setForma083(e.target.value)} />
-              {v === "tayyor" ? FORMA_083_LABEL.true : FORMA_083_LABEL.false}
+              {matn}
             </label>
           ))}
         </div>

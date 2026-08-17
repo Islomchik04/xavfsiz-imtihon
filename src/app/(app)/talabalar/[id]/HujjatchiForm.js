@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { sanaKorinishi } from "@/lib/imtihonHisob";
-import { FORMA_083_LABEL } from "@/lib/constants";
+import { HUJJAT_FORMA_083_LABEL } from "@/lib/constants";
 
 export default function HujjatchiForm({ talaba, imtihonlar }) {
   const router = useRouter();
-  const [hujjatForma083, setHujjatForma083] = useState(talaba.forma_083);
+  // Admin bosqichidagi forma_083 endi uch holatli ("ha"/"yoq"/"ozida") — bu
+  // yerda faqat "ha" bo'lsagina boshlang'ich qiymat sifatida "tayyor" deb
+  // taklif qilamiz, aks holda (shu jumladan "ozida" — hali maktabga
+  // topshirilmagan) hujjatchi buni hali tasdiqlay olmaydi.
+  const [hujjatForma083, setHujjatForma083] = useState(talaba.forma_083 === "ha");
   const [tasdiqnoma, setTasdiqnoma] = useState(false);
   const [imtihonVaraqasi, setImtihonVaraqasi] = useState(false);
   // Admin ariza yuborayotganda "qaysi imtihon uchun" degan istagini
@@ -90,8 +94,8 @@ export default function HujjatchiForm({ talaba, imtihonlar }) {
         label="083 forma"
         qiymat={hujjatForma083}
         onChange={setHujjatForma083}
-        haLabel={FORMA_083_LABEL[true]}
-        yoqLabel={FORMA_083_LABEL[false]}
+        haLabel={HUJJAT_FORMA_083_LABEL[true]}
+        yoqLabel={HUJJAT_FORMA_083_LABEL[false]}
       />
       <Toggle label="Tasdiqnoma bor" qiymat={tasdiqnoma} onChange={setTasdiqnoma} />
       <Toggle label="Imtihon varaqasi bor" qiymat={imtihonVaraqasi} onChange={setImtihonVaraqasi} />

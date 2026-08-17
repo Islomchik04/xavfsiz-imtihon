@@ -13,7 +13,7 @@ export const IMPORT_USTUNLARI = [
   { key: "telefon", header: "Telefon raqami * (998siz, 9 xonali)", namuna: "91 234 56 78", kenglik: 22 },
   { key: "toifa", header: "Toifa *", namuna: "B", kenglik: 12 },
   { key: "guruh_raqami", header: "Guruh raqami *", namuna: "24", kenglik: 14 },
-  { key: "forma_083", header: "083 forma *", namuna: FORMA_083_LABEL[true], kenglik: 14 },
+  { key: "forma_083", header: "083 forma *", namuna: FORMA_083_LABEL.ha, kenglik: 14 },
   { key: "imtihon_turi", header: "Imtihon turi *", namuna: IMTIHON_TURI.ikkalasi, kenglik: 26 },
   { key: "nazariy_oqituvchi", header: "Nazariy o'qituvchi", namuna: "", kenglik: 24 },
 ];
@@ -50,5 +50,5 @@ export function matndanForma083(matn) {
   if (!matn) return null;
   const kalit = FORMA_083_TESKARI.get(String(matn).trim().toLowerCase());
   if (kalit === undefined) return null;
-  return kalit === "true"; // JS obyekt kaliti sifatida "true"/"false" satr bo'ladi
+  return kalit; // "ha" | "yoq" | "ozida"
 }

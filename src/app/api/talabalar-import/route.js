@@ -107,7 +107,7 @@ export async function POST(so_rov) {
     if (!toifa) { xatoQoshish(`Toifa "${toifaMatni}" tanilmadi — Yordam varag'idagi ro'yxatdan tanlang`); continue; }
 
     const forma083 = matndanForma083(forma083Matni);
-    if (forma083 === null) { xatoQoshish(`083 forma "${forma083Matni}" tanilmadi (Tayyor / Tayyor emas)`); continue; }
+    if (forma083 === null) { xatoQoshish(`083 forma "${forma083Matni}" tanilmadi (Ha / Yo'q / O'zida)`); continue; }
 
     const imtihonTuri = matndanImtihonTuri(imtihonTuriMatni);
     if (!imtihonTuri) { xatoQoshish(`Imtihon turi "${imtihonTuriMatni}" tanilmadi`); continue; }

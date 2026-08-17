@@ -81,7 +81,7 @@ export async function GET(so_rov) {
 
   const toifaQiymatlari = Object.values(TOIFALAR);
   const imtihonTuriQiymatlari = Object.values(IMTIHON_TURI);
-  const forma083Qiymatlari = [FORMA_083_LABEL[true], FORMA_083_LABEL[false]];
+  const forma083Qiymatlari = Object.values(FORMA_083_LABEL);
   const maxUzunlik = Math.max(
     toifaQiymatlari.length,
     imtihonTuriQiymatlari.length,

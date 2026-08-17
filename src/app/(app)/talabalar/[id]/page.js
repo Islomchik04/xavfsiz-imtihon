@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { joriyFoydalanuvchi } from "@/lib/joriyFoydalanuvchi";
-import { IMTIHON_TURI, FORMA_083_LABEL, TALABA_HOLATI, TALABA_HOLATI_RANG } from "@/lib/constants";
+import { IMTIHON_TURI, FORMA_083_LABEL, FORMA_083_TON, HUJJAT_FORMA_083_LABEL, TALABA_HOLATI, TALABA_HOLATI_RANG } from "@/lib/constants";
 import { talabaHolati, qismHolati } from "@/lib/imtihonHisob";
 import Badge from "@/components/Badge";
 import AsosiyMalumotlarCard from "./AsosiyMalumotlarCard";
@@ -141,7 +141,7 @@ export default async function TalabaDetailSahifa({ params }) {
         <h1 className="text-xl font-bold text-slate-800">{talaba.ism_familya}</h1>
         <div className="flex flex-wrap gap-2 mt-2">
           <Badge ton="blue">{IMTIHON_TURI[talaba.imtihon_turi]}</Badge>
-          <Badge ton={talaba.forma_083 ? "emerald" : "amber"}>083 forma: {FORMA_083_LABEL[talaba.forma_083]}</Badge>
+          <Badge ton={FORMA_083_TON[talaba.forma_083]}>083 forma: {FORMA_083_LABEL[talaba.forma_083]}</Badge>
           {talaba.qarzdorlik && (
             <Badge ton="rose">
               Qarzdorlik: {talaba.qarzdorlik_summasi != null ? `${Number(talaba.qarzdorlik_summasi).toLocaleString("uz-UZ")} so'm` : "bor"}
@@ -171,7 +171,7 @@ export default async function TalabaDetailSahifa({ params }) {
         <h2 className="font-semibold text-slate-800 mb-4">Hujjat holati</h2>
         {talaba.hujjat_tayyor ? (
           <div className="space-y-2 text-sm">
-            <SatrMalumot label="083 forma (Hujjatchi tasdig'i)" qiymat={FORMA_083_LABEL[talaba.hujjat_forma_083]} />
+            <SatrMalumot label="083 forma (Hujjatchi tasdig'i)" qiymat={HUJJAT_FORMA_083_LABEL[talaba.hujjat_forma_083]} />
             <SatrMalumot label="Tasdiqnoma" qiymat={talaba.tasdiqnoma ? "Bor" : "Yo'q"} />
             <SatrMalumot label="Imtihon varaqasi" qiymat={talaba.imtihon_varaqasi ? "Bor" : "Yo'q"} />
             {talaba.hujjat_izoh && <SatrMalumot label="Izoh" qiymat={talaba.hujjat_izoh} />}

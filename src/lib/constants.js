@@ -60,15 +60,35 @@ export const TOIFALAR = {
   avtoledi: "Avtoledi",
 };
 
-// 083 forma holati — "Ha/Yo'q" o'rniga "Tayyor/Tayyor emas" ko'rinishida
+// 083 forma holati (Admin ro'yxatga olishda belgilaydi) — UCH holat: Ha (bor),
+// Yo'q (umuman yo'q), O'zida (talabada bor, hali maktabga topshirilmagan).
+// Diqqat: bu Hujjatchi bosqichidagi hujjat_forma_083 (Ha/Yo'q, majburiy) bilan
+// aralashtirilmasin — o'sha maydon o'zgarmagan, hali ham strikt boolean.
 export const FORMA_083_LABEL = {
-  true: "Tayyor",
-  false: "Tayyor emas",
+  ha: "Ha",
+  yoq: "Yo'q",
+  ozida: "O'zida",
 };
 
 export const FORMA_083_RANG = {
-  true: "bg-emerald-100 text-emerald-700",
-  false: "bg-amber-100 text-amber-700",
+  ha: "bg-emerald-100 text-emerald-700",
+  yoq: "bg-rose-100 text-rose-700",
+  ozida: "bg-amber-100 text-amber-700",
+};
+
+// Badge komponenti uchun "ton" nomlari (Badge.js'dagi tonlar ro'yxatiga mos).
+export const FORMA_083_TON = {
+  ha: "emerald",
+  yoq: "rose",
+  ozida: "amber",
+};
+
+// Hujjatchi bosqichidagi 083 forma tasdig'i (hujjat_forma_083) — bu hali ham
+// strikt boolean (imtihonchilar safiga qo'shish uchun majburiy "Ha" bo'lishi
+// kerak, "o'zida" degan oraliq holat bu yerda ma'nosiz).
+export const HUJJAT_FORMA_083_LABEL = {
+  true: "Tayyor",
+  false: "Tayyor emas",
 };
 
 // Talaba umumiy holati (imtihonHisob.js#talabaHolati natijasi)

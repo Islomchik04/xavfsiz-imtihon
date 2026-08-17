@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { joriyFoydalanuvchi } from "@/lib/joriyFoydalanuvchi";
 import Badge from "@/components/Badge";
-import { IMTIHON_TURI, FORMA_083_LABEL, TOIFALAR } from "@/lib/constants";
+import { IMTIHON_TURI, FORMA_083_LABEL, FORMA_083_TON, TOIFALAR } from "@/lib/constants";
 import { telefonKorinishi } from "@/lib/telefon";
 import ArxivdanChiqarish from "./ArxivdanChiqarish";
 
@@ -99,7 +99,7 @@ export default async function ArxivSahifa({ searchParams }) {
                   {t.filiallar?.nomi} / {t.guruhlar?.nomi}
                 </td>
                 <td className="py-2.5">
-                  <Badge ton={t.forma_083 ? "emerald" : "amber"}>{FORMA_083_LABEL[t.forma_083]}</Badge>
+                  <Badge ton={FORMA_083_TON[t.forma_083]}>{FORMA_083_LABEL[t.forma_083]}</Badge>
                 </td>
                 <td className="py-2.5 text-slate-500">
                   {t.arxivlangan_vaqt ? new Date(t.arxivlangan_vaqt).toLocaleDateString("uz-UZ") : "—"}
@@ -135,7 +135,7 @@ export default async function ArxivSahifa({ searchParams }) {
                 </Link>
                 {t.intalim_id && <div className="text-xs text-slate-400">ID: {t.intalim_id}</div>}
               </div>
-              <Badge ton={t.forma_083 ? "emerald" : "amber"}>{FORMA_083_LABEL[t.forma_083]}</Badge>
+              <Badge ton={FORMA_083_TON[t.forma_083]}>{FORMA_083_LABEL[t.forma_083]}</Badge>
             </div>
             <div className="text-xs text-slate-400 mb-2">
               {TOIFALAR[t.toifa] || "—"} · {t.filiallar?.nomi} / {t.guruhlar?.nomi}
