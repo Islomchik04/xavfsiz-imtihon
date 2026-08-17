@@ -26,6 +26,7 @@ const LUGAT = {
   nav_mustaqil_imtihonchilar: { uz: "Mustaqil imtihonchilar", uzk: "Мустақил имтиҳончилар", ru: "Независимые экзаменуемые" },
   nav_kpi: { uz: "KPI / Maosh", uzk: "KPI / Маош", ru: "KPI / Зарплата" },
   nav_kabinet: { uz: "Mening kabinetim", uzk: "Менинг кабинетим", ru: "Мой кабинет" },
+  nav_oqituvchilar: { uz: "O'qituvchilar", uzk: "Ўқитувчилар", ru: "Преподаватели" },
   nav_sozlamalar: { uz: "Sozlamalar", uzk: "Созламалар", ru: "Настройки" },
   chiqish: { uz: "Chiqish", uzk: "Чиқиш", ru: "Выйти" },
   menyu: { uz: "Menyu", uzk: "Меню", ru: "Меню" },

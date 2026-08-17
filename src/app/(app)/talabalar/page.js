@@ -10,7 +10,9 @@ import AutoQidiruvFormi from "@/components/AutoQidiruvFormi";
 
 const TALABA_SELECT = `
   id, ism_familya, telefon, intalim_id, toifa, imtihon_turi, forma_083, hujjat_tayyor, qarzdorlik, qarzdorlik_summasi,
-  filiallar(id, nomi), guruhlar(nomi)
+  rad_etildi, rad_izoh, rad_vaqt,
+  filiallar(id, nomi), guruhlar(nomi),
+  rad_sabab:sabablar!rad_sabab_id(matn)
 `;
 
 const RAD_ETILGAN_SELECT = `
@@ -54,20 +56,20 @@ export default async function TalabalarSahifa({ searchParams }) {
     radEtilganRoyxat = tartibFiltr === "guruh" ? guruhBoyichaSaralash(radXom || []) : radXom || [];
     error = radXato;
   } else {
-    // Hujjati hali tayyor bo'lmagan (arizalar bosqichidagi) talabalar bu
-    // ro'yxatda ko'rinmaydi — ular /arizalar bo'limida turadi va hujjatchi
-    // hujjatni tayyor deb belgilagach avtomatik shu yerga (Talabalar) o'tadi.
+    // Bazadagi BARCHA talabalar — hujjati hali tayyor bo'lmaganlar (arizalar
+    // bosqichida) va rad etilganlar ham shu yerda, tegishli "Holat" belgisi
+    // bilan ko'rinadi. Faqat arxivlangan talabalar bundan mustasno — ular
+    // alohida Arxiv bo'limida turadi.
     let so_rov = supabase
       .from("talabalar")
       .select(TALABA_SELECT)
       .eq("arxivlangan", false)
-      .eq("hujjat_tayyor", true)
       .order("created_at", { ascending: false });
     if (q) so_rov = so_rov.or(`ism_familya.ilike.%${q}%,intalim_id.ilike.%${q}%`);
     if (toifaFiltr) so_rov = so_rov.eq("toifa", toifaFiltr);
     if (guruhFiltr) so_rov = so_rov.eq("guruh_id", guruhFiltr);
 
-    const { data: talabalarXom, error: xato } = await so_rov.limit(300);
+    const { data: talabalarXom, error: xato } = await so_rov.limit(2000);
     error = xato;
     const talabalar = talabalarXom || [];
 
@@ -86,7 +88,13 @@ export default async function TalabalarSahifa({ searchParams }) {
 
     royxat = talabalar.map((t) => {
       const urinishlariT = urinishlarMap.get(t.id) || [];
-      const holat = talabaHolati(urinishlariT);
+      // Rad etilgan yoki hujjati hali tayyor bo'lmagan talabalar uchun
+      // umumiy imtihon holati emas, balki shu maxsus holat ko'rsatiladi.
+      const holat = t.rad_etildi
+        ? "rad_etilgan"
+        : !t.hujjat_tayyor
+          ? "hujjat_kutilmoqda"
+          : talabaHolati(urinishlariT);
       // "Qachon o'tgani" — talaba umumiy holati "otdi" bo'lsa, oxirgi
       // (eng so'nggi) urinishi biriktirilgan imtihon kunini ko'rsatamiz.
       const otganSana = holat === "otdi" ? oxirgiUrinish(urinishlariT)?.imtihonlar?.sana || null : null;
@@ -140,6 +148,7 @@ export default async function TalabalarSahifa({ searchParams }) {
           <label className="label">Holat</label>
           <select className="input" name="holat" defaultValue={holatFiltr}>
             <option value="">Barchasi</option>
+            <option value="hujjat_kutilmoqda">Hujjat kutilmoqda</option>
             <option value="imtihon_yoq">Imtihonga biriktirilmagan</option>
             <option value="kutilmoqda">Natija kutilmoqda</option>
             <option value="otdi">O'tdi</option>
@@ -265,6 +274,9 @@ export default async function TalabalarSahifa({ searchParams }) {
                     {t.nazariydanOtganmi && <span className="badge bg-emerald-100 text-emerald-700">Nazariydan o'tgan</span>}
                   </div>
                   {t.otganSana && <div className="text-xs text-slate-400 mt-1">O'tgan sana: {sanaKorinishi(t.otganSana)}</div>}
+                  {t.holat === "rad_etilgan" && (
+                    <div className="text-xs text-rose-500 mt-1">Sabab: {t.rad_sabab?.matn || "—"}</div>
+                  )}
                 </td>
               </tr>
             ))}
@@ -309,6 +321,9 @@ export default async function TalabalarSahifa({ searchParams }) {
               )}
             </div>
             {t.otganSana && <div className="text-xs text-slate-400 mt-1.5">O'tgan sana: {sanaKorinishi(t.otganSana)}</div>}
+            {t.holat === "rad_etilgan" && (
+              <div className="text-xs text-rose-500 mt-1.5">Sabab: {t.rad_sabab?.matn || "—"}</div>
+            )}
           </Link>
         ))}
       </div>

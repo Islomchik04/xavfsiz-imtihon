@@ -73,6 +73,7 @@ export const FORMA_083_RANG = {
 
 // Talaba umumiy holati (imtihonHisob.js#talabaHolati natijasi)
 export const TALABA_HOLATI = {
+  rad_etilgan: "Rad etilgan",
   hujjat_kutilmoqda: "Hujjat kutilmoqda",
   imtihon_yoq: "Imtihonga biriktirilmagan",
   kutilmoqda: "Natija kutilmoqda",
@@ -97,6 +98,7 @@ export const IMTIHON_HOLATI_RANG = {
 };
 
 export const TALABA_HOLATI_RANG = {
+  rad_etilgan: "bg-rose-100 text-rose-700",
   hujjat_kutilmoqda: "bg-amber-100 text-amber-700",
   imtihon_yoq: "bg-slate-100 text-slate-500",
   kutilmoqda: "bg-brand-100 text-brand-700",

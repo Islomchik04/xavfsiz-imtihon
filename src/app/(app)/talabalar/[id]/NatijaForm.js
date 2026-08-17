@@ -6,7 +6,14 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { NATIJA, NATIJA_RANG } from "@/lib/constants";
 import { qaytaBiriktirishKerakmi, sanaKorinishi } from "@/lib/imtihonHisob";
 
-export default function NatijaForm({ talaba, urinishlar, natijaTahrirRuxsat, qaytaBiriktirishRuxsat, imtihonlar }) {
+export default function NatijaForm({
+  talaba,
+  urinishlar,
+  natijaTahrirRuxsat,
+  qaytaBiriktirishRuxsat,
+  imtihonlar,
+  superadminMi,
+}) {
   if (!urinishlar || urinishlar.length === 0) {
     return <p className="text-sm text-slate-400">Bu talaba hali birorta imtihonga biriktirilmagan.</p>;
   }
@@ -24,6 +31,7 @@ export default function NatijaForm({ talaba, urinishlar, natijaTahrirRuxsat, qay
           urinish={u}
           eskimi={idx > 0}
           tahrirRuxsat={natijaTahrirRuxsat && idx === 0}
+          superadminMi={superadminMi}
         />
       ))}
 
@@ -34,14 +42,16 @@ export default function NatijaForm({ talaba, urinishlar, natijaTahrirRuxsat, qay
   );
 }
 
-function UrinishKartochka({ urinish, eskimi, tahrirRuxsat }) {
+function UrinishKartochka({ urinish, eskimi, tahrirRuxsat, superadminMi }) {
   const router = useRouter();
   const [yuklanmoqdaMaydon, setYuklanmoqdaMaydon] = useState(null);
 
-  async function belgilash(maydon, qiymat) {
+  async function belgilash(maydon, qiymat, urinishMaydon, urinishQiymat) {
     setYuklanmoqdaMaydon(maydon);
     const supabase = supabaseBrowser();
-    const { error } = await supabase.from("talaba_imtihonlar").update({ [maydon]: qiymat }).eq("id", urinish.id);
+    const oz = { [maydon]: qiymat };
+    if (urinishMaydon) oz[urinishMaydon] = urinishQiymat;
+    const { error } = await supabase.from("talaba_imtihonlar").update(oz).eq("id", urinish.id);
     setYuklanmoqdaMaydon(null);
     if (!error) router.refresh();
   }
@@ -58,22 +68,26 @@ function UrinishKartochka({ urinish, eskimi, tahrirRuxsat }) {
           <NatijaQatori
             sarlavha="Nazariy"
             natija={urinish.nazariy_natija}
+            urinishRaqami={urinish.nazariy_urinish_raqami}
             belgilagan={urinish.nazariy_belgilagan_profil?.ism_familya}
             vaqt={urinish.nazariy_belgilangan_vaqt}
             tahrirRuxsat={tahrirRuxsat}
+            superadminMi={superadminMi}
             yuklanmoqda={yuklanmoqdaMaydon === "nazariy_natija"}
-            onBelgilash={(q) => belgilash("nazariy_natija", q)}
+            onBelgilash={(q, urinishRaqami) => belgilash("nazariy_natija", q, "nazariy_urinish_raqami", urinishRaqami ?? null)}
           />
         )}
         {urinish.amaliy_kerak && (
           <NatijaQatori
             sarlavha="Amaliy"
             natija={urinish.amaliy_natija}
+            urinishRaqami={urinish.amaliy_urinish_raqami}
             belgilagan={urinish.amaliy_belgilagan_profil?.ism_familya}
             vaqt={urinish.amaliy_belgilangan_vaqt}
             tahrirRuxsat={tahrirRuxsat}
+            superadminMi={superadminMi}
             yuklanmoqda={yuklanmoqdaMaydon === "amaliy_natija"}
-            onBelgilash={(q) => belgilash("amaliy_natija", q)}
+            onBelgilash={(q, urinishRaqami) => belgilash("amaliy_natija", q, "amaliy_urinish_raqami", urinishRaqami ?? null)}
           />
         )}
       </div>
@@ -81,23 +95,78 @@ function UrinishKartochka({ urinish, eskimi, tahrirRuxsat }) {
   );
 }
 
-function NatijaQatori({ sarlavha, natija, belgilagan, vaqt, tahrirRuxsat, yuklanmoqda, onBelgilash }) {
+function NatijaQatori({ sarlavha, natija, urinishRaqami, belgilagan, vaqt, tahrirRuxsat, superadminMi, yuklanmoqda, onBelgilash }) {
+  const yakunlangan = natija !== "kutilmoqda";
+  // Natija chiqib bo'lgan bo'lsa ham — tahrirlash huquqi bor har qanday rol
+  // (imtihonchi yoki superadmin) uni qayta o'zgartira/tuzata oladi (masalan
+  // xato bosilgan bo'lsa). Ma'lumotlar bazasi darajasida ham (trigger orqali)
+  // imtihonchi uchun bu cheklanmagan — faqat interfeys avval buni yopib
+  // qo'ygan edi.
+  const korsatilsinmi = tahrirRuxsat;
+  const [otdiSoralmoqda, setOtdiSoralmoqda] = useState(false);
+  const [raqam, setRaqam] = useState(urinishRaqami ? String(urinishRaqami) : "1");
+
+  function otdiniTasdiqlash() {
+    const son = Math.max(1, parseInt(raqam, 10) || 1);
+    onBelgilash("otdi", son);
+    setOtdiSoralmoqda(false);
+    setRaqam("1");
+  }
+
   return (
     <div className="bg-slate-50 rounded-lg p-3">
       <div className="flex justify-between items-center mb-2">
         <span className="text-sm font-medium text-slate-700">{sarlavha}</span>
         <span className={`badge ${NATIJA_RANG[natija] || "bg-slate-100 text-slate-600"}`}>
           {NATIJA[natija]}
+          {natija === "otdi" && urinishRaqami ? ` (${urinishRaqami}-urinish)` : ""}
         </span>
       </div>
-      {tahrirRuxsat && natija === "kutilmoqda" && (
-        <div className="flex gap-2">
-          <button type="button" disabled={yuklanmoqda} onClick={() => onBelgilash("otdi")} className="btn-success flex-1 !py-2.5">
-            O'TDI
-          </button>
-          <button type="button" disabled={yuklanmoqda} onClick={() => onBelgilash("otmadi")} className="btn-danger flex-1 !py-2.5">
-            O'TMADI
-          </button>
+      {korsatilsinmi && (
+        <div className="space-y-2">
+          {yakunlangan && (
+            <div className="text-xs text-amber-600">Natija allaqachon belgilangan — qayta o'zgartirmoqdasiz.</div>
+          )}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={yuklanmoqda}
+              onClick={() => setOtdiSoralmoqda((v) => !v)}
+              className={`flex-1 !py-2.5 btn ${otdiSoralmoqda ? "bg-emerald-700 text-white" : "btn-success"}`}
+            >
+              O'TDI
+            </button>
+            <button
+              type="button"
+              disabled={yuklanmoqda}
+              onClick={() => onBelgilash("otmadi")}
+              className="btn-danger flex-1 !py-2.5"
+            >
+              O'TMADI
+            </button>
+          </div>
+          {otdiSoralmoqda && (
+            <div className="flex gap-2 items-center bg-emerald-50 border border-emerald-200 rounded-lg p-2">
+              <input
+                type="number"
+                min={1}
+                step={1}
+                className="input !py-1.5 !text-sm flex-1"
+                value={raqam}
+                onChange={(e) => setRaqam(e.target.value)}
+                placeholder="Necha-urinishda o'tdi?"
+                autoFocus
+              />
+              <button
+                type="button"
+                disabled={yuklanmoqda}
+                onClick={otdiniTasdiqlash}
+                className="btn-primary !py-1.5 !text-sm shrink-0 disabled:opacity-50"
+              >
+                Tasdiqlash
+              </button>
+            </div>
+          )}
         </div>
       )}
       {belgilagan && (

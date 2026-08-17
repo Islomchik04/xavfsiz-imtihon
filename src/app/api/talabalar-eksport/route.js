@@ -7,6 +7,7 @@ import { guruhBoyichaSaralash } from "@/lib/saralash";
 
 const TALABA_SELECT = `
   id, ism_familya, telefon, intalim_id, toifa, imtihon_turi, forma_083, hujjat_tayyor, qarzdorlik, qarzdorlik_summasi,
+  rad_etildi,
   filiallar(id, nomi), guruhlar(nomi)
 `;
 
@@ -35,7 +36,6 @@ export async function GET(so_rov) {
     .from("talabalar")
     .select(TALABA_SELECT)
     .eq("arxivlangan", false)
-    .eq("hujjat_tayyor", true)
     .order("created_at", { ascending: false });
   if (q) so_rovBuilder = so_rovBuilder.or(`ism_familya.ilike.%${q}%,intalim_id.ilike.%${q}%`);
   if (toifaFiltr) so_rovBuilder = so_rovBuilder.eq("toifa", toifaFiltr);
@@ -62,7 +62,11 @@ export async function GET(so_rov) {
 
   let royxat = talabalar.map((t) => {
     const urinishlariT = urinishlarMap.get(t.id) || [];
-    const holat = talabaHolati(urinishlariT);
+    const holat = t.rad_etildi
+      ? "rad_etilgan"
+      : !t.hujjat_tayyor
+        ? "hujjat_kutilmoqda"
+        : talabaHolati(urinishlariT);
     const otganSana = holat === "otdi" ? oxirgiUrinish(urinishlariT)?.imtihonlar?.sana || null : null;
     return {
       ...t,

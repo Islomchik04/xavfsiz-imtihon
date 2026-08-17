@@ -19,6 +19,7 @@ const LINKLAR = [
   { href: "/arxiv", key: "nav_arxiv", ikon: "🗄️", rollar: ["superadmin", "admin", "hujjatchi", "imtihonchi"] },
   { href: "/hisobotlar", key: "nav_hisobotlar", ikon: "📈", rollar: ["superadmin", "admin", "hujjatchi", "imtihonchi"] },
   { href: "/kpi", key: "nav_kpi", ikon: "💰", rollar: ["superadmin"] },
+  { href: "/oqituvchilar", key: "nav_oqituvchilar", ikon: "👩‍🏫", rollar: ["admin"] },
   { href: "/kabinet", key: "nav_kabinet", ikon: "🎓", rollar: ["oqituvchi"] },
   { href: "/sozlamalar", key: "nav_sozlamalar", ikon: "⚙️", rollar: ["superadmin"] },
 ];

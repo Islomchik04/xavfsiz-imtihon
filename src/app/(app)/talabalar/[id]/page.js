@@ -9,6 +9,7 @@ import NatijaForm from "./NatijaForm";
 import TalabaniOchirish from "./TalabaniOchirish";
 import ArxivBoshqaruvi from "./ArxivBoshqaruvi";
 import AmaliyArizaForma from "./AmaliyArizaForma";
+import AmaliyTezBiriktirish from "./AmaliyTezBiriktirish";
 
 const TALABA_SELECT = `
   *,
@@ -86,7 +87,7 @@ export default async function TalabaDetailSahifa({ params }) {
   }
 
   let imtihonlar = [];
-  if (hujjatTahrirRuxsat || qaytaBiriktirishRuxsat) {
+  if (hujjatTahrirRuxsat || qaytaBiriktirishRuxsat || natijaTahrirRuxsat) {
     const { data } = await supabase
       .from("imtihonlar")
       .select("id, sana, izoh")
@@ -94,6 +95,16 @@ export default async function TalabaDetailSahifa({ params }) {
       .limit(100);
     imtihonlar = data || [];
   }
+
+  // Amaliy imtihonga tezkor biriktirish + natija — talabaning hujjati
+  // tayyor bo'lishi va hozircha natijasi chiqmagan ("kutilmoqda") amaliy
+  // urinishi bo'lmasligi kerak (amaliyga_otkazish RPC'sining o'zi ham shu
+  // shartni tekshiradi — bu yerda oldindan tekshirib, keraksiz xatoni
+  // oldini olamiz).
+  const mavjudPendingAmaliy = (urinishlar || []).some(
+    (u) => u.amaliy_kerak && u.amaliy_natija === "kutilmoqda"
+  );
+  const amaliyTezBiriktirishRuxsat = natijaTahrirRuxsat && talaba.hujjat_tayyor && !mavjudPendingAmaliy;
 
   const holat = talabaHolati(urinishlar || []);
 
@@ -191,6 +202,11 @@ export default async function TalabaDetailSahifa({ params }) {
             imtihonlar={imtihonlar}
             superadminMi={profile.role === "superadmin"}
           />
+        )}
+        {amaliyTezBiriktirishRuxsat && (
+          <div className="mt-4">
+            <AmaliyTezBiriktirish talabaId={talaba.id} imtihonlar={imtihonlar} />
+          </div>
         )}
       </div>
 
