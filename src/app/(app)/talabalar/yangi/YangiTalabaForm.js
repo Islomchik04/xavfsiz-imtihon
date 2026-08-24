@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { IMTIHON_TURI, FORMA_083_LABEL, TOIFALAR } from "@/lib/constants";
@@ -47,6 +48,7 @@ export default function YangiTalabaForm({
     tahrirlanayotgan?.istalgan_imtihon_id || ""
   );
   const [xato, setXato] = useState("");
+  const [mavjudTakror, setMavjudTakror] = useState(null); // {id, ism_familya} — bir xil ism+telefon bilan topilgan mavjud talaba
   const [yuklanmoqda, setYuklanmoqda] = useState(false);
 
   // Superadmin uchun filial-o'qituvchi biriktirmasi cheklovi qo'llanilmaydi —
@@ -73,6 +75,7 @@ export default function YangiTalabaForm({
   async function yuborish(e) {
     e.preventDefault();
     setXato("");
+    setMavjudTakror(null);
 
     if (!filialId || (!expressToifa && !guruhRaqami.trim()) || !imtihonTuri || !toifa) {
       setXato("Barcha maydonlarni to'ldiring");
@@ -96,11 +99,10 @@ export default function YangiTalabaForm({
     const supabase = supabaseBrowser();
 
     // Bir xil ism+telefon bilan FAOL (arxivlanmagan) talaba allaqachon
-    // borligini tekshiramiz — bu QATTIQ cheklov emas (ba'zi filiallarda
-    // umumiy/vaqtinchalik telefon raqamlari ishlatiladi), shuning uchun
-    // topilsa ogohlantirib, foydalanuvchi tasdiqlasa davom etamiz. Faqat
-    // yangi talaba qo'shishda tekshiramiz — tahrirlashda talabaning o'zini
-    // o'ziga qarshi taqqoslamaslik uchun.
+    // borligini tekshiramiz — topilsa, qo'shishga umuman ruxsat
+    // BERILMAYDI (qattiq cheklov), xodim avval mavjud profilni tekshirishi
+    // kerak. Faqat yangi talaba qo'shishda tekshiramiz — tahrirlashda
+    // talabaning o'zini o'ziga qarshi taqqoslamaslik uchun.
     if (!tahrirRejimi) {
       const { data: mavjudlar } = await supabase
         .from("talabalar")
@@ -109,12 +111,13 @@ export default function YangiTalabaForm({
         .eq("arxivlangan", false)
         .ilike("ism_familya", ismFamilya.trim());
       if (mavjudlar && mavjudlar.length > 0) {
-        const davomEtish = window.confirm(
-          `Diqqat! "${mavjudlar[0].ism_familya}" ismli, shu telefon raqami (+998 ${telefonKorinishi(
+        setXato(
+          `"${mavjudlar[0].ism_familya}" ismli, shu telefon raqami (+998 ${telefonKorinishi(
             telefonNormal
-          )}) bilan talaba allaqachon ro'yxatda bor.\n\nBaribir yangi talaba sifatida qo'shishni davom ettirasizmi?`
+          )}) bilan talaba allaqachon ro'yxatda bor — qayta qo'shib bo'lmaydi.`
         );
-        if (!davomEtish) return;
+        setMavjudTakror(mavjudlar[0]);
+        return;
       }
     }
 
@@ -391,7 +394,19 @@ export default function YangiTalabaForm({
         </div>
       )}
 
-      {xato && <div className="text-sm text-rose-600 bg-rose-50 rounded-lg px-3 py-2">{xato}</div>}
+      {xato && (
+        <div className="text-sm text-rose-600 bg-rose-50 rounded-lg px-3 py-2">
+          {xato}
+          {mavjudTakror && (
+            <>
+              {" "}
+              <Link href={`/talabalar/${mavjudTakror.id}`} className="underline font-medium">
+                Mavjud profilni ko'rish
+              </Link>
+            </>
+          )}
+        </div>
+      )}
 
       <button type="submit" className="btn-primary w-full" disabled={yuklanmoqda}>
         {yuklanmoqda ? "Saqlanmoqda…" : tahrirRejimi ? "O'zgarishlarni saqlash" : "Ro'yxatga olish"}

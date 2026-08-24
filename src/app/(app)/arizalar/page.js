@@ -1,8 +1,8 @@
 import { joriyFoydalanuvchi, rolgaRuxsat } from "@/lib/joriyFoydalanuvchi";
 import { TOIFALAR } from "@/lib/constants";
 import { guruhBoyichaSaralash } from "@/lib/saralash";
+import Link from "next/link";
 import YangiTalabaArizaRoyxati from "@/components/YangiTalabaArizaRoyxati";
-import RadEtilganArizalarRoyxati from "@/components/RadEtilganArizalarRoyxati";
 import AutoQidiruvFormi from "@/components/AutoQidiruvFormi";
 
 // Adminlar (yoki hujjatchi/superadmin) tomonidan "Yangi talaba" orqali
@@ -22,13 +22,6 @@ const TALABA_SELECT = `
   filiallar(id, nomi), guruhlar(nomi),
   qoshgan_profil:profiles!qoshgan(ism_familya),
   istalgan_imtihon:imtihonlar!istalgan_imtihon_id(sana, izoh)
-`;
-
-const RAD_ETILGAN_SELECT = `
-  id, ism_familya, telefon, intalim_id, toifa, imtihon_turi, rad_izoh, rad_vaqt,
-  filiallar(id, nomi), guruhlar(nomi),
-  rad_sabab:sabablar!rad_sabab_id(matn),
-  rad_etgan_profil:profiles!rad_etgan(ism_familya)
 `;
 
 export default async function ArizalarSahifa({ searchParams }) {
@@ -65,19 +58,6 @@ export default async function ArizalarSahifa({ searchParams }) {
     // filial bo'yicha cheklamasdan, barcha faol guruhlarni ko'rsatamiz.
     supabase.from("guruhlar").select("id, nomi").eq("faol", true).order("nomi"),
   ]);
-
-  let radEtilganRoyxat = [];
-  if (radEtishRuxsat) {
-    const { data: radEtilganXom } = await supabase
-      .from("talabalar")
-      .select(RAD_ETILGAN_SELECT)
-      .eq("arxivlangan", false)
-      .eq("rad_etildi", true)
-      .neq("imtihon_turi", "amaliy")
-      .order("rad_vaqt", { ascending: false })
-      .limit(200);
-    radEtilganRoyxat = radEtilganXom || [];
-  }
 
   let sabablar = [];
   let faolImtihonlar = [];
@@ -162,16 +142,13 @@ export default async function ArizalarSahifa({ searchParams }) {
       />
 
       {radEtishRuxsat && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-bold text-slate-800">
-            🚫 Rad etilgan arizalar{" "}
-            <span className="text-sm font-normal text-slate-500">({radEtilganRoyxat.length} ta)</span>
-          </h2>
-          <RadEtilganArizalarRoyxati
-            royxat={radEtilganRoyxat}
-            qaytarishRuxsat={rolgaRuxsat(profile, ["superadmin"])}
-          />
-        </div>
+        <Link
+          href="/rad-etilganlar"
+          className="card flex items-center justify-between text-sm font-medium text-slate-600 hover:text-brand-700 hover:border-brand-200 transition-colors"
+        >
+          <span>🚫 Rad etilgan arizalar ro'yxati</span>
+          <span className="text-brand-600">Ko'rish →</span>
+        </Link>
       )}
     </div>
   );

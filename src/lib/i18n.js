@@ -22,6 +22,7 @@ const LUGAT = {
   nav_hisobotlar: { uz: "Hisobotlar", uzk: "Ҳисоботлар", ru: "Отчёты" },
   nav_arxiv: { uz: "Arxiv", uzk: "Архив", ru: "Архив" },
   nav_arizalar: { uz: "Nazariy imtihon arizalari", uzk: "Назарий имтиҳон аризалари", ru: "Заявки на теорию" },
+  nav_rad_etilganlar: { uz: "Rad etilganlar", uzk: "Рад этилганлар", ru: "Отклонённые" },
   nav_amaliy_arizalar: { uz: "Amaliy imtihon arizalari", uzk: "Амалий имтиҳон аризалари", ru: "Заявки на практику" },
   nav_mustaqil_imtihonchilar: { uz: "Mustaqil imtihonchilar", uzk: "Мустақил имтиҳончилар", ru: "Независимые экзаменуемые" },
   nav_kpi: { uz: "KPI / Maosh", uzk: "KPI / Маош", ru: "KPI / Зарплата" },
