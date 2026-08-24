@@ -10,6 +10,8 @@ import TalabaniOchirish from "./TalabaniOchirish";
 import ArxivBoshqaruvi from "./ArxivBoshqaruvi";
 import AmaliyArizaForma from "./AmaliyArizaForma";
 import AmaliyTezBiriktirish from "./AmaliyTezBiriktirish";
+import ArizaRadEtishTugmasi from "@/components/ArizaRadEtishTugmasi";
+import QaytarishTugmasi from "@/components/QaytarishTugmasi";
 
 const TALABA_SELECT = `
   *,
@@ -18,7 +20,9 @@ const TALABA_SELECT = `
   nazariy_oqituvchilar:oqituvchilar!nazariy_oqituvchi_id(id, ism_familya),
   qoshgan_profil:profiles!qoshgan(ism_familya),
   hujjat_tayyorlagan_profil:profiles!hujjat_tayyorlagan(ism_familya),
-  istalgan_imtihon:imtihonlar!istalgan_imtihon_id(sana, izoh)
+  istalgan_imtihon:imtihonlar!istalgan_imtihon_id(sana, izoh),
+  rad_sabab:sabablar!rad_sabab_id(matn),
+  rad_etgan_profil:profiles!rad_etgan(ism_familya)
 `;
 
 const URINISH_SELECT = `
@@ -96,6 +100,15 @@ export default async function TalabaDetailSahifa({ params }) {
     imtihonlar = data || [];
   }
 
+  // Hali hujjati tayyor bo'lmagan talabani shu profil sahifasidan ham rad
+  // etish mumkin bo'lishi uchun — sabablar ro'yxati (arizalar sahifasidagi
+  // bilan bir xil), faqat shu amalga ruxsat bor bo'lganda yuklanadi.
+  let sabablar = [];
+  if (hujjatTahrirRuxsat) {
+    const { data } = await supabase.from("sabablar").select("id, matn").eq("faol", true).order("created_at");
+    sabablar = data || [];
+  }
+
   // Amaliy imtihonga tezkor biriktirish + natija — talabaning hujjati
   // tayyor bo'lishi va hozircha natijasi chiqmagan ("kutilmoqda") amaliy
   // urinishi bo'lmasligi kerak (amaliyga_otkazish RPC'sining o'zi ham shu
@@ -106,7 +119,14 @@ export default async function TalabaDetailSahifa({ params }) {
   );
   const amaliyTezBiriktirishRuxsat = natijaTahrirRuxsat && talaba.hujjat_tayyor && !mavjudPendingAmaliy;
 
-  const holat = talabaHolati(urinishlar || []);
+  // Talabalar ro'yxati sahifasidagi bilan bir xil qoida — rad etilgan yoki
+  // hujjati hali tayyor bo'lmagan talabalar uchun umumiy imtihon holati
+  // emas, balki shu maxsus holat ko'rsatiladi.
+  const holat = talaba.rad_etildi
+    ? "rad_etilgan"
+    : !talaba.hujjat_tayyor
+      ? "hujjat_kutilmoqda"
+      : talabaHolati(urinishlar || []);
 
   // "Amaliy ariza" — Filial admini (yoki hujjatchi/imtihonchi/superadmin)
   // nazariydan o'tgan, hujjati tayyor, hali amaliyga biriktirilmagan
@@ -182,8 +202,37 @@ export default async function TalabaDetailSahifa({ params }) {
               }`}
             />
           </div>
+        ) : talaba.rad_etildi ? (
+          <div className="space-y-2 text-sm">
+            <div className="bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 text-rose-700 font-medium">
+              ❌ Ariza rad etilgan
+            </div>
+            <SatrMalumot label="Sabab" qiymat={talaba.rad_sabab?.matn || "—"} />
+            {talaba.rad_izoh && <SatrMalumot label="Izoh" qiymat={talaba.rad_izoh} />}
+            <SatrMalumot
+              label="Rad etgan"
+              qiymat={`${talaba.rad_etgan_profil?.ism_familya || "—"} ${
+                talaba.rad_vaqt ? `· ${new Date(talaba.rad_vaqt).toLocaleString("uz-UZ")}` : ""
+              }`}
+            />
+            {profile.role === "superadmin" && (
+              <div className="pt-2 flex justify-end">
+                <QaytarishTugmasi talabaId={talaba.id} />
+              </div>
+            )}
+          </div>
         ) : hujjatTahrirRuxsat ? (
-          <HujjatchiForm talaba={talaba} imtihonlar={imtihonlar} />
+          <div className="space-y-4">
+            <HujjatchiForm talaba={talaba} imtihonlar={imtihonlar} />
+            <div className="flex items-center gap-3 text-xs text-slate-400">
+              <div className="flex-1 border-t border-slate-100" />
+              yoki
+              <div className="flex-1 border-t border-slate-100" />
+            </div>
+            <div className="flex justify-end">
+              <ArizaRadEtishTugmasi talabaId={talaba.id} sabablar={sabablar} />
+            </div>
+          </div>
         ) : (
           <p className="text-sm text-slate-400">Hujjatchi tomonidan hali ko'rib chiqilmagan.</p>
         )}
