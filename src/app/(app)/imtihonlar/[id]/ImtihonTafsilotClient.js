@@ -177,6 +177,15 @@ export default function ImtihonTafsilotClient({
           >
             📊 Ro'yxatni yuklab olish
           </a>
+          <a
+            href={`/api/imtihon-royxati-pdf?id=${imtihon.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary !py-2 !text-sm"
+            title="Chiroyli formatlangan PDF — yangi vkladkada ochiladi, o'sha yerdan pechat qilish mumkin"
+          >
+            🖨 Pechat
+          </a>
           {holatBoshqarishRuxsat && holat === "boshlanmagan" && (
             <button
               className="btn-primary"
