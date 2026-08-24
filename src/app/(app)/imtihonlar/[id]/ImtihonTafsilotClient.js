@@ -170,6 +170,13 @@ export default function ImtihonTafsilotClient({
         </div>
         <div className="flex items-center gap-2">
           <span className={`badge ${IMTIHON_HOLATI_RANG[holat]}`}>{IMTIHON_HOLATI[holat]}</span>
+          <a
+            href={`/api/imtihon-royxati?id=${imtihon.id}`}
+            className="btn-secondary !py-2 !text-sm"
+            title="Printer qilib, qo'lda natija/urinish belgilab chiqish uchun ro'yxat"
+          >
+            📊 Ro'yxatni yuklab olish
+          </a>
           {holatBoshqarishRuxsat && holat === "boshlanmagan" && (
             <button
               className="btn-primary"
